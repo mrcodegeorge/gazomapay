@@ -1,75 +1,275 @@
 <?php
 
+require_once __DIR__ . '/../Helpers/Response.php';
 require_once __DIR__ . '/../Middleware/ApiAuthMiddleware.php';
 require_once __DIR__ . '/../Services/SandboxPaymentGateway.php';
-require_once __DIR__ . '/../Helpers/Response.php';
+require_once __DIR__ . '/../Services/IdempotencyService.php';
+require_once __DIR__ . '/../Services/LedgerEngine.php';
 require_once __DIR__ . '/../../config/database.php';
 
 class ApiController {
-    public function createPayment(): void {
-        $apiKey = ApiAuthMiddleware::authenticate();
-        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 
-        $gateway = new SandboxPaymentGateway();
-        $res = $gateway->charge([
-            'merchant_id' => $apiKey['merchant_id'],
-            'amount' => (float)($input['amount'] ?? 0),
-            'customer_name' => $input['customer_name'] ?? 'API Customer',
-            'customer_email' => $input['customer_email'] ?? 'api@example.com',
-            'customer_phone' => $input['customer_phone'] ?? '',
-            'payment_method' => $input['payment_method'] ?? 'card'
-        ]);
-
-        Response::json($res, $res['success'] ? 200 : 400);
+    private static function respondSuccess(array $data, int $code = 200): void {
+        header('Content-Type: application/json');
+        http_response_code($code);
+        echo json_encode([
+            'success' => true,
+            'data' => $data,
+            'meta' => [
+                'timestamp' => date('c'),
+                'version' => 'v1'
+            ]
+        ], JSON_PRETTY_PRINT);
+        exit;
     }
 
+    private static function respondError(string $errorCode, string $message, int $code = 400): void {
+        header('Content-Type: application/json');
+        http_response_code($code);
+        echo json_encode([
+            'success' => false,
+            'error' => [
+                'code' => $errorCode,
+                'message' => $message
+            ]
+        ], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    /**
+     * POST /api/v1/payments
+     */
+    public function createPayment(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $idempotencyKey = $_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? null;
+        if ($idempotencyKey) {
+            $cached = IdempotencyService::check($merchant['id'], $idempotencyKey, '/api/v1/payments', $input);
+            if ($cached) {
+                header('Content-Type: application/json');
+                http_response_code($cached['code']);
+                echo json_encode($cached['body'], JSON_PRETTY_PRINT);
+                exit;
+            }
+        }
+
+        $amount = (float)($input['amount'] ?? 0);
+        if ($amount <= 0) {
+            self::respondError('INVALID_AMOUNT', 'The payment amount must be greater than zero.', 422);
+        }
+
+        $gateway = new SandboxPaymentGateway();
+        $input['merchant_id'] = $merchant['id'];
+        $result = $gateway->charge($input);
+
+        if ($result['success']) {
+            $responsePayload = [
+                'success' => true,
+                'data' => $result,
+                'meta' => ['timestamp' => date('c'), 'version' => 'v1']
+            ];
+            if ($idempotencyKey) {
+                IdempotencyService::store($merchant['id'], $idempotencyKey, '/api/v1/payments', $input, 200, $responsePayload);
+            }
+            self::respondSuccess($result, 200);
+        } else {
+            self::respondError('PAYMENT_FAILED', $result['message'], 400);
+        }
+    }
+
+    /**
+     * GET /api/v1/payments/{id}
+     */
     public function getPayment(string $id): void {
-        $apiKey = ApiAuthMiddleware::authenticate();
+        $merchant = ApiAuthMiddleware::authenticate();
         $pdo = Database::getConnection();
 
-        $stmt = $pdo->prepare("SELECT * FROM transactions WHERE (id = ? OR reference = ?) AND merchant_id = ?");
-        $stmt->execute([$id, $id, $apiKey['merchant_id']]);
+        $stmt = $pdo->prepare("SELECT * FROM transactions WHERE merchant_id = ? AND (reference = ? OR id = ?)");
+        $stmt->execute([$merchant['id'], $id, $id]);
         $tx = $stmt->fetch();
 
         if (!$tx) {
-            Response::json(['error' => 'Payment transaction not found'], 404);
+            self::respondError('NOT_FOUND', 'Payment transaction not found.', 404);
         }
 
-        Response::json(['success' => true, 'data' => $tx]);
+        self::respondSuccess($tx);
     }
 
+    /**
+     * POST /api/v1/payments/{id}/refund
+     */
+    public function refundPayment(string $id): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $gateway = new SandboxPaymentGateway();
+        $result = $gateway->refund($id, (float)($input['amount'] ?? 0), $input['reason'] ?? 'API initiated refund');
+
+        if ($result['success']) {
+            self::respondSuccess($result);
+        } else {
+            self::respondError('REFUND_FAILED', $result['message'], 400);
+        }
+    }
+
+    /**
+     * GET /api/v1/transactions
+     */
+    public function listTransactions(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $pdo = Database::getConnection();
+
+        $stmt = $pdo->prepare("SELECT * FROM transactions WHERE merchant_id = ? ORDER BY id DESC LIMIT 50");
+        $stmt->execute([$merchant['id']]);
+        $txs = $stmt->fetchAll();
+
+        self::respondSuccess(['transactions' => $txs, 'count' => count($txs)]);
+    }
+
+    /**
+     * POST /api/v1/customers & GET /api/v1/customers
+     */
     public function createCustomer(): void {
-        $apiKey = ApiAuthMiddleware::authenticate();
+        $merchant = ApiAuthMiddleware::authenticate();
         $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 
         $name = trim($input['name'] ?? '');
         $email = trim($input['email'] ?? '');
         $phone = trim($input['phone'] ?? '');
 
-        if (empty($name) || empty($email)) {
-            Response::json(['error' => 'Name and email are required'], 400);
+        if (!$name || !$email) {
+            self::respondError('INVALID_INPUT', 'Customer name and email are required.', 422);
         }
 
         $pdo = Database::getConnection();
         $uuid = 'cst_' . bin2hex(random_bytes(6));
         $stmt = $pdo->prepare("INSERT INTO customers (merchant_id, uuid, name, email, phone) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$apiKey['merchant_id'], $uuid, $name, $email, $phone]);
+        $stmt->execute([$merchant['id'], $uuid, $name, $email, $phone]);
 
-        Response::json(['success' => true, 'id' => $pdo->lastInsertId(), 'uuid' => $uuid, 'name' => $name, 'email' => $email]);
+        $id = $pdo->lastInsertId();
+        self::respondSuccess(['id' => $id, 'uuid' => $uuid, 'name' => $name, 'email' => $email], 201);
+    }
+
+    public function listCustomers(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $pdo = Database::getConnection();
+
+        $stmt = $pdo->prepare("SELECT * FROM customers WHERE merchant_id = ? ORDER BY id DESC LIMIT 50");
+        $stmt->execute([$merchant['id']]);
+        $customers = $stmt->fetchAll();
+
+        self::respondSuccess(['customers' => $customers, 'count' => count($customers)]);
     }
 
     public function getCustomer(string $id): void {
-        $apiKey = ApiAuthMiddleware::authenticate();
+        $merchant = ApiAuthMiddleware::authenticate();
         $pdo = Database::getConnection();
 
-        $stmt = $pdo->prepare("SELECT * FROM customers WHERE (id = ? OR uuid = ?) AND merchant_id = ?");
-        $stmt->execute([$id, $id, $apiKey['merchant_id']]);
-        $cust = $stmt->fetch();
+        $stmt = $pdo->prepare("SELECT * FROM customers WHERE merchant_id = ? AND (uuid = ? OR id = ?)");
+        $stmt->execute([$merchant['id'], $id, $id]);
+        $cst = $stmt->fetch();
 
-        if (!$cust) {
-            Response::json(['error' => 'Customer not found'], 404);
+        if (!$cst) {
+            self::respondError('NOT_FOUND', 'Customer not found.', 404);
         }
 
-        Response::json(['success' => true, 'data' => $cust]);
+        self::respondSuccess($cst);
+    }
+
+    /**
+     * POST /api/v1/payment-links & GET /api/v1/payment-links
+     */
+    public function createPaymentLink(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $name = trim($input['name'] ?? '');
+        $amount = (float)($input['amount'] ?? 0);
+
+        if (!$name || $amount <= 0) {
+            self::respondError('INVALID_INPUT', 'Valid link name and amount are required.', 422);
+        }
+
+        $pdo = Database::getConnection();
+        $token = 'PL_' . sprintf('%08d', rand(100000, 99999999));
+        $stmt = $pdo->prepare("INSERT INTO payment_links (merchant_id, token, name, description, amount, currency, max_uses, redirect_url) VALUES (?, ?, ?, ?, ?, 'GHS', ?, ?)");
+        $stmt->execute([
+            $merchant['id'],
+            $token,
+            $name,
+            $input['description'] ?? '',
+            $amount,
+            (int)($input['max_uses'] ?? 0),
+            $input['redirect_url'] ?? ''
+        ]);
+
+        $id = $pdo->lastInsertId();
+        self::respondSuccess([
+            'id' => $id,
+            'token' => $token,
+            'name' => $name,
+            'amount' => $amount,
+            'url' => "http://127.0.0.1:8000/pay/{$token}"
+        ], 201);
+    }
+
+    public function listPaymentLinks(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $pdo = Database::getConnection();
+
+        $stmt = $pdo->prepare("SELECT * FROM payment_links WHERE merchant_id = ? ORDER BY id DESC");
+        $stmt->execute([$merchant['id']]);
+        $links = $stmt->fetchAll();
+
+        self::respondSuccess(['payment_links' => $links, 'count' => count($links)]);
+    }
+
+    public function getPaymentLink(string $id): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $pdo = Database::getConnection();
+
+        $stmt = $pdo->prepare("SELECT * FROM payment_links WHERE merchant_id = ? AND (token = ? OR id = ?)");
+        $stmt->execute([$merchant['id'], $id, $id]);
+        $link = $stmt->fetch();
+
+        if (!$link) {
+            self::respondError('NOT_FOUND', 'Payment link not found.', 404);
+        }
+
+        self::respondSuccess($link);
+    }
+
+    /**
+     * GET /api/v1/balance
+     */
+    public function getBalance(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+
+        $avail = LedgerEngine::getAvailableBalance($merchant['id']);
+        $pending = LedgerEngine::getPendingBalance($merchant['id']);
+        $settled = LedgerEngine::getSettledBalance($merchant['id']);
+
+        self::respondSuccess([
+            'currency' => 'GHS',
+            'available_balance' => $avail,
+            'pending_balance' => $pending,
+            'settled_balance' => $settled,
+            'total_balance' => round($avail + $pending, 2)
+        ]);
+    }
+
+    /**
+     * GET /api/v1/settlements
+     */
+    public function listSettlements(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $pdo = Database::getConnection();
+
+        $stmt = $pdo->prepare("SELECT * FROM settlements WHERE merchant_id = ? ORDER BY id DESC");
+        $stmt->execute([$merchant['id']]);
+        $settlements = $stmt->fetchAll();
+
+        self::respondSuccess(['settlements' => $settlements, 'count' => count($settlements)]);
     }
 }

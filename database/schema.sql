@@ -1,7 +1,11 @@
--- Gazoma Pay MySQL Database Schema
+-- Gazoma Pay Production-Grade Hardened MySQL Database Schema
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `idempotency_keys`;
+DROP TABLE IF EXISTS `ledger_entries`;
+DROP TABLE IF EXISTS `ledger_transactions`;
+DROP TABLE IF EXISTS `ledger_accounts`;
 DROP TABLE IF EXISTS `audit_logs`;
 DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `webhook_logs`;
@@ -26,12 +30,16 @@ DROP TABLE IF EXISTS `platform_settings`;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- Merchants Table
+-- Merchants Table with KYB / KYC Hardening
 CREATE TABLE `merchants` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `uuid` VARCHAR(64) UNIQUE NOT NULL,
   `merchant_id` VARCHAR(32) UNIQUE NOT NULL,
   `name` VARCHAR(191) NOT NULL,
+  `legal_name` VARCHAR(191) NULL,
+  `trading_name` VARCHAR(191) NULL,
+  `business_registration_number` VARCHAR(64) NULL,
+  `business_type` ENUM('sole_proprietorship', 'limited_company', 'partnership', 'registered_charity') DEFAULT 'limited_company',
   `email` VARCHAR(191) NOT NULL,
   `phone` VARCHAR(32) NULL,
   `logo` VARCHAR(255) NULL,
@@ -43,9 +51,13 @@ CREATE TABLE `merchants` (
   `available_balance` DECIMAL(15,2) DEFAULT 0.00,
   `pending_balance` DECIMAL(15,2) DEFAULT 0.00,
   `settled_balance` DECIMAL(15,2) DEFAULT 0.00,
+  `kyc_status` ENUM('verification_pending', 'under_review', 'approved', 'rejected') DEFAULT 'approved',
+  `account_status` ENUM('pending', 'active', 'suspended', 'restricted', 'closed') DEFAULT 'active',
   `status` ENUM('active', 'suspended', 'pending') DEFAULT 'active',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_merchant_code` (`merchant_id`),
+  INDEX `idx_mch_status` (`account_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Users Table
@@ -62,7 +74,8 @@ CREATE TABLE `users` (
   `last_login` DATETIME NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  INDEX `idx_user_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Customers Table
@@ -82,7 +95,67 @@ CREATE TABLE `customers` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
-  INDEX `idx_merchant_customer` (`merchant_id`, `email`)
+  INDEX `idx_merchant_customer` (`merchant_id`, `email`),
+  INDEX `idx_cust_uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Ledger Accounts Table
+CREATE TABLE `ledger_accounts` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `merchant_id` INT NOT NULL,
+  `account_number` VARCHAR(64) UNIQUE NOT NULL,
+  `account_type` ENUM('merchant_available', 'merchant_pending', 'platform_fee', 'provider_fee', 'customer_escrow', 'bank_disbursement') NOT NULL,
+  `currency` VARCHAR(8) DEFAULT 'GHS',
+  `status` ENUM('active', 'frozen') DEFAULT 'active',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  INDEX `idx_ledger_account_type` (`merchant_id`, `account_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Ledger Transactions Table
+CREATE TABLE `ledger_transactions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `reference` VARCHAR(64) UNIQUE NOT NULL,
+  `event_id` VARCHAR(64) UNIQUE NOT NULL,
+  `event_type` VARCHAR(64) NOT NULL,
+  `merchant_id` INT NOT NULL,
+  `description` VARCHAR(255) NOT NULL,
+  `status` ENUM('posted', 'pending', 'reversed') DEFAULT 'posted',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  INDEX `idx_ledger_tx_ref` (`reference`),
+  INDEX `idx_ledger_evt` (`event_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Ledger Entries Table (Double-Entry Financial Accounting)
+CREATE TABLE `ledger_entries` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `ledger_transaction_id` INT NOT NULL,
+  `account_id` INT NOT NULL,
+  `debit_amount` DECIMAL(15,2) DEFAULT 0.00,
+  `credit_amount` DECIMAL(15,2) DEFAULT 0.00,
+  `currency` VARCHAR(8) DEFAULT 'GHS',
+  `balance_after` DECIMAL(15,2) NOT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`ledger_transaction_id`) REFERENCES `ledger_transactions`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`account_id`) REFERENCES `ledger_accounts`(`id`) ON DELETE CASCADE,
+  INDEX `idx_entry_account` (`account_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Idempotency Keys Table
+CREATE TABLE `idempotency_keys` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `merchant_id` INT NOT NULL,
+  `idempotency_key` VARCHAR(128) NOT NULL,
+  `request_path` VARCHAR(255) NOT NULL,
+  `request_hash` VARCHAR(64) NOT NULL,
+  `response_code` INT NOT NULL,
+  `response_body` JSON NOT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `expires_at` DATETIME NOT NULL,
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  UNIQUE KEY `uk_merchant_key` (`merchant_id`, `idempotency_key`),
+  INDEX `idx_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Payment Links Table
@@ -95,7 +168,7 @@ CREATE TABLE `payment_links` (
   `amount` DECIMAL(15,2) NOT NULL,
   `currency` VARCHAR(8) DEFAULT 'GHS',
   `usage_count` INT DEFAULT 0,
-  `max_uses` INT DEFAULT 0, -- 0 for unlimited
+  `max_uses` INT DEFAULT 0,
   `redirect_url` VARCHAR(255) NULL,
   `success_message` TEXT NULL,
   `status` ENUM('active', 'inactive', 'expired') DEFAULT 'active',
@@ -112,7 +185,8 @@ CREATE TABLE `payment_link_views` (
   `ip_address` VARCHAR(45) NULL,
   `user_agent` TEXT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`payment_link_id`) REFERENCES `payment_links`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`payment_link_id`) REFERENCES `payment_links`(`id`) ON DELETE CASCADE,
+  INDEX `idx_pl_views` (`payment_link_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Invoices Table
@@ -132,7 +206,8 @@ CREATE TABLE `invoices` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE CASCADE,
+  INDEX `idx_inv_num` (`invoice_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Invoice Items Table
@@ -150,6 +225,7 @@ CREATE TABLE `invoice_items` (
 CREATE TABLE `transactions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `reference` VARCHAR(64) UNIQUE NOT NULL,
+  `event_id` VARCHAR(64) UNIQUE NOT NULL,
   `merchant_id` INT NOT NULL,
   `customer_id` INT NULL,
   `payment_link_id` INT NULL,
@@ -171,6 +247,8 @@ CREATE TABLE `transactions` (
   FOREIGN KEY (`payment_link_id`) REFERENCES `payment_links`(`id`) ON DELETE SET NULL,
   FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON DELETE SET NULL,
   INDEX `idx_merchant_status` (`merchant_id`, `status`),
+  INDEX `idx_tx_ref` (`reference`),
+  INDEX `idx_tx_event` (`event_id`),
   INDEX `idx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -185,7 +263,8 @@ CREATE TABLE `refunds` (
   `status` ENUM('completed', 'pending', 'failed') DEFAULT 'completed',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`transaction_id`) REFERENCES `transactions`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  INDEX `idx_refund_ref` (`refund_reference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Settlements Table
@@ -204,7 +283,8 @@ CREATE TABLE `settlements` (
   `processed_at` DATETIME NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  INDEX `idx_settle_ref` (`reference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Subscription Plans Table
@@ -248,8 +328,10 @@ CREATE TABLE `api_keys` (
   `secret_key_hash` VARCHAR(255) NOT NULL,
   `secret_key_preview` VARCHAR(32) NOT NULL,
   `status` ENUM('active', 'revoked') DEFAULT 'active',
+  `last_used_at` DATETIME NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  INDEX `idx_api_pub` (`public_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Webhook Endpoints Table
@@ -269,15 +351,19 @@ CREATE TABLE `webhook_logs` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `merchant_id` INT NOT NULL,
   `endpoint_id` INT NOT NULL,
+  `event_id` VARCHAR(64) NOT NULL,
   `event_type` VARCHAR(64) NOT NULL,
   `payload` JSON NOT NULL,
+  `signature` VARCHAR(128) NULL,
   `response_code` INT DEFAULT 0,
   `response_body` TEXT NULL,
   `attempt_count` INT DEFAULT 1,
+  `next_retry_at` DATETIME NULL,
   `status` ENUM('delivered', 'failed', 'retrying') DEFAULT 'delivered',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`endpoint_id`) REFERENCES `webhook_endpoints`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`endpoint_id`) REFERENCES `webhook_endpoints`(`id`) ON DELETE CASCADE,
+  INDEX `idx_wh_event` (`event_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Notifications Table
@@ -304,7 +390,8 @@ CREATE TABLE `audit_logs` (
   `user_agent` TEXT NULL,
   `metadata` JSON NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  INDEX `idx_audit_mch` (`merchant_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Platform Settings Table

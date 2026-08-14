@@ -2,26 +2,38 @@
 
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../app/Services/LedgerEngine.php';
 
-echo "=== Gazoma Pay Database Seeder ===\n";
+echo "=== Gazoma Pay Hardened Database Seeder ===\n";
 
 try {
     $pdo = Database::getConnection();
     
-    echo "[1/4] Running schema SQL...\n";
+    echo "[1/4] Applying schema SQL...\n";
     $sql = file_get_contents(__DIR__ . '/schema.sql');
-    $pdo->exec($sql);
+    
+    // Split multi-statement SQL by semicolon for reliable execution
+    $statements = array_filter(array_map('trim', explode(';', $sql)));
+    foreach ($statements as $stmtSql) {
+        if (!empty($stmtSql)) {
+            $pdo->exec($stmtSql);
+        }
+    }
     echo "Schema applied successfully.\n";
 
     echo "[2/4] Seeding Merchants & Users...\n";
     $passHash = password_hash('password123', PASSWORD_BCRYPT);
     
     // Merchant: Gazoma Tech
-    $stmt = $pdo->prepare("INSERT INTO merchants (uuid, merchant_id, name, email, phone, logo, country, currency, timezone, address, environment, available_balance, pending_balance, settled_balance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO merchants (uuid, merchant_id, name, legal_name, trading_name, business_registration_number, business_type, email, phone, logo, country, currency, timezone, address, environment, available_balance, pending_balance, settled_balance, kyc_status, account_status, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->execute([
         'mch_892374829374',
         'GZM_123456',
         'Gazoma Tech',
+        'Gazoma Tech Ghana Limited',
+        'Gazoma Tech',
+        'CS-892019284',
+        'limited_company',
         'contact@gazomatech.com',
         '+233 24 123 4567',
         '/assets/images/logo.png',
@@ -33,13 +45,15 @@ try {
         28560.00,
         4250.00,
         93750.00,
+        'approved',
+        'active',
         'active'
     ]);
     $merchantId = $pdo->lastInsertId();
 
     // Owner User: John Mensah
-    $stmt = $pdo->prepare("INSERT INTO users (merchant_id, uuid, name, email, password, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([
+    $stmtUser = $pdo->prepare("INSERT INTO users (merchant_id, uuid, name, email, password, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmtUser->execute([
         $merchantId,
         'usr_john_mensah_001',
         'John Mensah',
@@ -50,7 +64,7 @@ try {
     ]);
 
     // Platform Super Admin
-    $stmt->execute([
+    $stmtUser->execute([
         $merchantId,
         'usr_superadmin_000',
         'Gazoma System Admin',
@@ -60,7 +74,7 @@ try {
         'active'
     ]);
 
-    echo "[3/4] Seeding Customers, Payment Links, Invoices, Plans...\n";
+    echo "[3/4] Seeding Customers, Payment Links, Invoices...\n";
     
     // Customers
     $customersData = [
@@ -81,7 +95,7 @@ try {
         $customerIds[$c[0]] = $pdo->lastInsertId();
     }
 
-    // Payment Links matching mockup
+    // Payment Links
     $paymentLinksData = [
         ['iPhone 15 Payment', 'Official iPhone 15 pre-order link', 6500.00, 12, 0, 'active', 'PL_1234567890', '2024-05-31 10:00:00'],
         ['Laptop Payment', 'High performance workstation bundle', 8000.00, 7, 0, 'active', 'PL_8829304918', '2024-05-30 14:20:00'],
@@ -97,14 +111,24 @@ try {
         $linkIds[$pl[0]] = $pdo->lastInsertId();
     }
 
-    // Record 156 Views for iPhone 15 Payment Link to match performance mockup!
+    // 156 Views for iPhone 15 Link
     $iphoneLinkId = $linkIds['iPhone 15 Payment'];
     $stmtViews = $pdo->prepare("INSERT INTO payment_link_views (payment_link_id, ip_address, user_agent) VALUES (?, ?, ?)");
     for ($i = 0; $i < 156; $i++) {
         $stmtViews->execute([$iphoneLinkId, '197.251.14.' . ($i % 250), 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)']);
     }
 
-    echo "[4/4] Seeding Transactions & Financial Metrics...\n";
+    echo "[4/4] Seeding Transactions, Financial Ledger & Webhook Logs...\n";
+
+    // 1. Initial Historical Earnings Batch to match Mockup total volume (126,560.00 GHS)
+    $stmtTx = $pdo->prepare("INSERT INTO transactions (reference, event_id, merchant_id, customer_id, payment_link_id, amount, fee, net_amount, currency, payment_method, provider, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    
+    $historicalGross = 126560.00;
+    $historicalFee = round($historicalGross * 0.015, 2);
+    $historicalNet = $historicalGross - $historicalFee;
+
+    // Post Historical Earnings to Ledger
+    LedgerEngine::recordPayment($merchantId, 'GZM_HIST_001', $historicalGross, $historicalFee, $historicalNet, "Historical platform processing earnings");
 
     // Exact Transactions visible in mockup UI
     $exactMockupTx = [
@@ -117,50 +141,38 @@ try {
         ['GZM_00012339', 'Adwoa Ansubonteng', 410.00, 'successful', '2024-05-28 15:15:00', 'mobile_money'],
     ];
 
-    $stmtTx = $pdo->prepare("INSERT INTO transactions (reference, merchant_id, customer_id, payment_link_id, amount, fee, net_amount, currency, payment_method, provider, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
     foreach ($exactMockupTx as $tx) {
         $cId = $customerIds[$tx[1]] ?? null;
         $fee = round($tx[2] * 0.015 + 0.50, 2);
         $net = $tx[2] - $fee;
-        $stmtTx->execute([$tx[0], $merchantId, $cId, null, $tx[2], $fee, $net, 'GHS', $tx[5], 'Sandbox Gateway', $tx[3], $tx[4]]);
+        $evtId = 'evt_' . bin2hex(random_bytes(10));
+        $stmtTx->execute([$tx[0], $evtId, $merchantId, $cId, null, $tx[2], $fee, $net, 'GHS', $tx[5], 'Sandbox Gateway', $tx[3], $tx[4]]);
     }
 
-    // iPhone 15 Link Payments (12 payments to match performance mockup: 12 payments * 6500 = 78,000.00 GHS volume!)
-    for ($k = 1; $k <= 12; $k++) {
-        $custName = ($k % 2 === 0) ? 'Ama Serwaa' : 'Kofi Mensah';
-        $cId = $customerIds[$custName];
-        $ref = 'GZM_PL_IP15_' . sprintf('%03d', $k);
-        $amt = 6500.00;
-        $fee = 98.00;
-        $net = $amt - $fee;
-        $dt = date('2024-05-d H:i:s', strtotime("2024-05-31 -{$k} hours"));
-        $stmtTx->execute([$ref, $merchantId, $cId, $iphoneLinkId, $amt, $fee, $net, 'GHS', 'card', 'Sandbox Gateway', 'successful', $dt]);
-    }
-
-    // Historical transactions across May 2024 to generate Total Volume = ~GH₵ 126,560.00 and 2,856 count
-    // We insert representative grouped historical batches so chart queries render smoothly
-    $chartDays = [
-        '2024-05-01' => 1200.00, '2024-05-03' => 4500.00, '2024-05-05' => 12800.00, '2024-05-07' => 15200.00,
-        '2024-05-09' => 24800.00, '2024-05-12' => 14500.00, '2024-05-15' => 28900.00, '2024-05-18' => 22400.00,
-        '2024-05-20' => 38500.00, '2024-05-23' => 32100.00, '2024-05-25' => 39800.00, '2024-05-28' => 24500.00,
-        '2024-05-31' => 22100.00
-    ];
-
-    $txCounter = 12350;
-    foreach ($chartDays as $dateStr => $dayVol) {
-        $cId = $customerIds['Comfort Stores'];
-        $ref = 'GZM_' . sprintf('%08d', $txCounter++);
-        $fee = round($dayVol * 0.015, 2);
-        $net = $dayVol - $fee;
-        $stmtTx->execute([$ref, $merchantId, $cId, null, $dayVol, $fee, $net, 'GHS', 'mobile_money', 'Sandbox Gateway', 'successful', $dateStr . ' 12:00:00']);
-    }
-
-    // Settlements
+    // Settlements matching mockup
     $stmtSet = $pdo->prepare("INSERT INTO settlements (reference, merchant_id, gross_amount, fee, net_amount, bank_name, account_number, account_name, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    
+    // Settlement 1 (50,000 GHS)
     $stmtSet->execute(['SET_89230192', $merchantId, 50000.00, 250.00, 49750.00, 'GCB Bank Ghana', '1011129384728', 'Gazoma Tech Ltd', 'completed', '2024-05-25 14:00:00']);
+    LedgerEngine::recordSettlementRequest($merchantId, 'SET_89230192', 50000.00);
+    LedgerEngine::recordSettlementCompletion($merchantId, 'SET_89230192', 50000.00, 250.00, 49750.00);
+
+    // Settlement 2 (44,000 GHS)
     $stmtSet->execute(['SET_89230193', $merchantId, 44000.00, 220.00, 43780.00, 'Stanbic Bank Ghana', '9040001827364', 'Gazoma Tech Ltd', 'completed', '2024-05-15 10:30:00']);
+    LedgerEngine::recordSettlementRequest($merchantId, 'SET_89230193', 44000.00);
+    LedgerEngine::recordSettlementCompletion($merchantId, 'SET_89230193', 44000.00, 220.00, 43780.00);
+
+    // Settlement 3 (4,250 GHS Pending)
     $stmtSet->execute(['SET_89230194', $merchantId, 4250.00, 21.25, 4228.75, 'GCB Bank Ghana', '1011129384728', 'Gazoma Tech Ltd', 'pending', '2024-05-31 16:00:00']);
+    LedgerEngine::recordSettlementRequest($merchantId, 'SET_89230194', 4250.00);
+
+    // Update stored balances to match exact Ledger Engine calculations
+    $realAvail = LedgerEngine::getAvailableBalance($merchantId);
+    $realPending = LedgerEngine::getPendingBalance($merchantId);
+    $realSettled = LedgerEngine::getSettledBalance($merchantId);
+
+    $updMchBal = $pdo->prepare("UPDATE merchants SET available_balance = ?, pending_balance = ?, settled_balance = ? WHERE id = ?");
+    $updMchBal->execute([$realAvail, $realPending, $realSettled, $merchantId]);
 
     // Invoices
     $stmtInv = $pdo->prepare("INSERT INTO invoices (merchant_id, customer_id, invoice_number, subtotal, tax, discount, total, status, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -170,36 +182,20 @@ try {
     $stmtInvItem = $pdo->prepare("INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, amount) VALUES (?, ?, ?, ?, ?)");
     $stmtInvItem->execute([$inv1Id, 'Custom Web Software Development Services', 1, 1200.00, 1200.00]);
 
-    $stmtInv->execute([$merchantId, $customerIds['Comfort Stores'], 'INV-2024-002', 3500.00, 175.00, 0.00, 3675.00, 'sent', '2024-06-30', 'Payment due within 30 days.']);
-    $inv2Id = $pdo->lastInsertId();
-    $stmtInvItem->execute([$inv2Id, 'Enterprise Payment Gateway Integration Consultancy', 1, 3500.00, 3500.00]);
-
-    // Subscription Plans
-    $stmtPlan = $pdo->prepare("INSERT INTO subscription_plans (merchant_id, name, description, amount, currency, billing_interval, trial_days, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmtPlan->execute([$merchantId, 'SaaS Starter Plan', 'Basic software license plan', 150.00, 'GHS', 'monthly', 7, 'active']);
-    $plan1Id = $pdo->lastInsertId();
-    $stmtPlan->execute([$merchantId, 'Enterprise Growth Plan', 'Full enterprise suite access', 850.00, 'GHS', 'monthly', 14, 'active']);
-
     // API Keys
     $stmtApi = $pdo->prepare("INSERT INTO api_keys (merchant_id, name, key_type, public_key, secret_key_hash, secret_key_preview, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
     $stmtApi->execute([$merchantId, 'Default Live Key', 'live', 'gzm_live_pub_9a8b7c6d5e4f3a2b', password_hash('gzm_live_sec_8819203918237491', PASSWORD_BCRYPT), 'gzm_live_sec_...7491', 'active']);
     $stmtApi->execute([$merchantId, 'Testing Key', 'test', 'gzm_test_pub_1a2b3c4d5e6f7a8b', password_hash('gzm_test_sec_1122334455667788', PASSWORD_BCRYPT), 'gzm_test_sec_...7788', 'active']);
 
-    // Webhook Endpoints
+    // Webhook Endpoints & Logs
     $stmtWh = $pdo->prepare("INSERT INTO webhook_endpoints (merchant_id, url, secret, events, status) VALUES (?, ?, ?, ?, ?)");
     $stmtWh->execute([$merchantId, 'https://gazomatech.com/api/webhooks/payments', 'whsec_90192837465', json_encode(['payment.success', 'payment.failed', 'settlement.completed']), 'active']);
     $whId = $pdo->lastInsertId();
 
-    $stmtWhLog = $pdo->prepare("INSERT INTO webhook_logs (merchant_id, endpoint_id, event_type, payload, response_code, response_body, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmtWhLog->execute([$merchantId, $whId, 'payment.success', json_encode(['event' => 'payment.success', 'data' => ['reference' => 'GZM_00012345', 'amount' => 200.00]]), 200, '{"received":true}', 'delivered']);
+    $stmtWhLog = $pdo->prepare("INSERT INTO webhook_logs (merchant_id, endpoint_id, event_id, event_type, payload, signature, response_code, response_body, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmtWhLog->execute([$merchantId, $whId, 'evt_9018237465', 'payment.success', json_encode(['event' => 'payment.success', 'data' => ['reference' => 'GZM_00012345', 'amount' => 200.00]]), 't=1723639200,v1=9f8a7b6c5d4e3f2a', 200, '{"received":true}', 'delivered']);
 
-    // Notifications
-    $stmtNotif = $pdo->prepare("INSERT INTO notifications (merchant_id, title, message, type, is_read) VALUES (?, ?, ?, ?, ?)");
-    $stmtNotif->execute([$merchantId, 'Payment Received', 'Ama Serwaa paid GH₵ 200.00 via Card.', 'success', 0]);
-    $stmtNotif->execute([$merchantId, 'Settlement Processing', 'Settlement SET_89230194 for GH₵ 4,250.00 is now pending approval.', 'info', 0]);
-    $stmtNotif->execute([$merchantId, 'New Payment Link Created', 'Payment link "iPhone 15 Payment" was accessed 156 times.', 'info', 1]);
-
-    echo "=== Gazoma Pay Database Seeded Successfully! ===\n";
+    echo "=== Gazoma Pay Hardened Database Seeded Successfully! ===\n";
 
 } catch (Exception $e) {
     die("Seeding Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());

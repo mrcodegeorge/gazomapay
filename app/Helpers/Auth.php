@@ -3,10 +3,14 @@
 require_once __DIR__ . '/../../config/database.php';
 
 class Auth {
-    public static function initSession(): void {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+    public static function init(): void {
+        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+            @session_start();
         }
+    }
+
+    public static function initSession(): void {
+        self::init();
     }
 
     public static function check(): bool {

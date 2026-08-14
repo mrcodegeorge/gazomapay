@@ -1,0 +1,78 @@
+<?php
+
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../app/Services/FeeEngine.php';
+require_once __DIR__ . '/../app/Services/LedgerEngine.php';
+require_once __DIR__ . '/../app/Services/IdempotencyService.php';
+require_once __DIR__ . '/../app/Services/SandboxPaymentGateway.php';
+require_once __DIR__ . '/../app/Services/ReconciliationService.php';
+
+echo "====================================================\n";
+echo "    GAZOMA PAY V1.0 AUTOMATED TEST SUITE RUNNER     \n";
+echo "====================================================\n\n";
+
+$passed = 0;
+$failed = 0;
+
+function assertTest(string $name, bool $condition, string $failureDetails = ''): void {
+    global $passed, $failed;
+    if ($condition) {
+        echo "  [PASS] {$name}\n";
+        $passed++;
+    } else {
+        echo "  [FAIL] {$name} - {$failureDetails}\n";
+        $failed++;
+    }
+}
+
+echo "--- 1. UNIT TESTS ---\n";
+
+// Fee Engine Calculation
+$calc = FeeEngine::calculate(100.00);
+assertTest('FeeEngine: 1.5% + GH₵0.50 calculation on 100 GHS', $calc['fee'] === 2.00 && $calc['net_amount'] === 98.00);
+
+$calc2 = FeeEngine::calculate(1000.00);
+assertTest('FeeEngine: 1.5% + GH₵0.50 calculation on 1000 GHS', $calc2['fee'] === 15.50 && $calc2['net_amount'] === 984.50);
+
+// Ledger Engine
+$testMchId = 1;
+$prevAvail = LedgerEngine::getAvailableBalance($testMchId);
+LedgerEngine::recordPayment($testMchId, 'TEST_LTX_001', 500.00, 8.00, 492.00, 'Unit test payment');
+$newAvail = LedgerEngine::getAvailableBalance($testMchId);
+
+assertTest('LedgerEngine: Record Payment increases available balance by net amount', round($newAvail - $prevAvail, 2) === 492.00);
+
+// Idempotency Check
+$key = 'test_key_' . bin2hex(random_bytes(6));
+IdempotencyService::store($testMchId, $key, '/api/v1/payments', ['amount' => 100], 200, ['status' => 'successful']);
+$cached = IdempotencyService::check($testMchId, $key, '/api/v1/payments', ['amount' => 100]);
+
+assertTest('IdempotencyService: Caches and returns original response on replay', $cached !== null && $cached['code'] === 200 && $cached['body']['status'] === 'successful');
+
+echo "\n--- 2. INTEGRATION TESTS ---\n";
+
+// Payment Gateway Flow
+$gateway = new SandboxPaymentGateway();
+$res = $gateway->charge([
+    'merchant_id' => $testMchId,
+    'amount' => 250.00,
+    'customer_name' => 'Test Suite Payer',
+    'customer_email' => 'testsuite@example.com',
+    'payment_method' => 'card'
+]);
+
+assertTest('SandboxPaymentGateway: Charge execution returns successful status & net amount', $res['success'] === true && $res['amount'] === 250.00);
+
+// Refund Flow
+$refundRes = $gateway->refund($res['reference'], 250.00, 'Test suite refund');
+assertTest('SandboxPaymentGateway: Refund execution reverses transaction successfully', $refundRes['success'] === true);
+
+echo "\n--- 3. FINANCIAL RECONCILIATION AUDIT ---\n";
+$audit = ReconciliationService::auditMerchant($testMchId);
+assertTest('ReconciliationService: Financial reconciliation audit status is PASS', $audit['status'] === 'PASS', implode('; ', $audit['issues']));
+
+echo "\n====================================================\n";
+echo " TEST RESULTS SUMMARY: Passed: {$passed} | Failed: {$failed}\n";
+echo "====================================================\n";
+
+exit($failed > 0 ? 1 : 0);

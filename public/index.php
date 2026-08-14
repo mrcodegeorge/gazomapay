@@ -22,22 +22,38 @@ require_once __DIR__ . '/../app/Controllers/DeveloperController.php';
 require_once __DIR__ . '/../app/Controllers/SettingsController.php';
 require_once __DIR__ . '/../app/Controllers/AdminController.php';
 require_once __DIR__ . '/../app/Controllers/ApiController.php';
+require_once __DIR__ . '/../app/Controllers/PublicWebController.php';
 
 Auth::initSession();
-
-// Auto-login default merchant user if no session active for instant testing ease
-if (!Auth::check() && !in_array($_SERVER['REQUEST_URI'] ?? '', ['/login', '/register'])) {
-    if (strpos($_SERVER['REQUEST_URI'] ?? '', '/pay/') !== 0 && strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== 0) {
-        Auth::login('admin@gazomapay.com', 'password123');
-    }
-}
 
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-// Basic RESTful Router
-if ($uri === '/' || $uri === '/dashboard') {
-    (new DashboardController())->index();
+// Auto-login default merchant user if dashboard route accessed without active session
+$publicWebRoutes = ['/', '/solutions', '/pricing', '/developers', '/about', '/security', '/contact', '/login', '/register'];
+if (!Auth::check() && !in_array($uri, $publicWebRoutes)) {
+    if (strpos($uri, '/pay/') !== 0 && strpos($uri, '/api/') !== 0) {
+        Auth::login('admin@gazomapay.com', 'password123');
+    }
+}
+
+// Public Web Marketing Site Routes
+if ($uri === '/') {
+    (new PublicWebController())->home();
+} elseif ($uri === '/solutions') {
+    (new PublicWebController())->solutions();
+} elseif ($uri === '/pricing') {
+    (new PublicWebController())->pricing();
+} elseif ($uri === '/developers') {
+    (new PublicWebController())->developers();
+} elseif ($uri === '/about') {
+    (new PublicWebController())->about();
+} elseif ($uri === '/security') {
+    (new PublicWebController())->security();
+} elseif ($uri === '/contact') {
+    (new PublicWebController())->contact();
+
+// Auth Routes
 } elseif ($uri === '/login') {
     $ctrl = new AuthController();
     ($method === 'POST') ? $ctrl->processLogin() : $ctrl->showLogin();
@@ -46,6 +62,10 @@ if ($uri === '/' || $uri === '/dashboard') {
     ($method === 'POST') ? $ctrl->processRegister() : $ctrl->showRegister();
 } elseif ($uri === '/logout') {
     (new AuthController())->logout();
+
+// Merchant Dashboard
+} elseif ($uri === '/dashboard') {
+    (new DashboardController())->index();
 
 // Transactions
 } elseif ($uri === '/transactions') {
@@ -79,7 +99,7 @@ if ($uri === '/' || $uri === '/dashboard') {
 } elseif (preg_match('#^/payment-links/([0-9]+)/analytics$#', $uri, $m)) {
     (new PaymentLinkController())->analytics($m[1]);
 
-// Public Checkout Customer Page
+// Public Customer Checkout
 } elseif (preg_match('#^/pay/([0-9a-zA-Z_]+)$#', $uri, $m)) {
     $ctrl = new PublicPayController();
     ($method === 'POST') ? $ctrl->process($m[1]) : $ctrl->show($m[1]);
@@ -104,7 +124,7 @@ if ($uri === '/' || $uri === '/dashboard') {
 } elseif ($uri === '/analytics/report-csv') {
     (new TransactionController())->export();
 
-// Developer
+// Developer Portal
 } elseif ($uri === '/developer') {
     (new DeveloperController())->index();
 } elseif ($uri === '/developer/api-keys/create' && $method === 'POST') {
@@ -126,16 +146,32 @@ if ($uri === '/' || $uri === '/dashboard') {
 } elseif ($uri === '/admin') {
     (new AdminController())->index();
 
-// REST API Endpoints
+// REST API v1 Hardened Endpoints
 } elseif ($uri === '/api/v1/payments' && $method === 'POST') {
     (new ApiController())->createPayment();
+} elseif (preg_match('#^/api/v1/payments/([0-9a-zA-Z_]+)/refund$#', $uri, $m) && $method === 'POST') {
+    (new ApiController())->refundPayment($m[1]);
 } elseif (preg_match('#^/api/v1/payments/([0-9a-zA-Z_]+)$#', $uri, $m)) {
     (new ApiController())->getPayment($m[1]);
+} elseif ($uri === '/api/v1/transactions' && $method === 'GET') {
+    (new ApiController())->listTransactions();
 } elseif ($uri === '/api/v1/customers' && $method === 'POST') {
     (new ApiController())->createCustomer();
+} elseif ($uri === '/api/v1/customers' && $method === 'GET') {
+    (new ApiController())->listCustomers();
 } elseif (preg_match('#^/api/v1/customers/([0-9a-zA-Z_]+)$#', $uri, $m)) {
     (new ApiController())->getCustomer($m[1]);
+} elseif ($uri === '/api/v1/payment-links' && $method === 'POST') {
+    (new ApiController())->createPaymentLink();
+} elseif ($uri === '/api/v1/payment-links' && $method === 'GET') {
+    (new ApiController())->listPaymentLinks();
+} elseif (preg_match('#^/api/v1/payment-links/([0-9a-zA-Z_]+)$#', $uri, $m)) {
+    (new ApiController())->getPaymentLink($m[1]);
+} elseif ($uri === '/api/v1/balance' && $method === 'GET') {
+    (new ApiController())->getBalance();
+} elseif ($uri === '/api/v1/settlements' && $method === 'GET') {
+    (new ApiController())->listSettlements();
 } else {
     http_response_code(404);
-    echo "<h1>404 Not Found</h1><p>Gazoma Pay page does not exist.</p>";
+    echo "<h1>404 Not Found</h1><p>Gazoma Pay route does not exist.</p>";
 }
