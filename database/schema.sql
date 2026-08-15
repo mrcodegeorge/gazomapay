@@ -52,6 +52,8 @@ CREATE TABLE `merchants` (
   `available_balance` DECIMAL(15,2) DEFAULT 0.00,
   `pending_balance` DECIMAL(15,2) DEFAULT 0.00,
   `settled_balance` DECIMAL(15,2) DEFAULT 0.00,
+  `custom_fee_percentage` DECIMAL(5,2) NULL,
+  `custom_fee_flat` DECIMAL(15,2) NULL,
   `onboarding_completed` TINYINT(1) DEFAULT 0,
   `onboarding_step` INT DEFAULT 1,
   `kyc_status` ENUM('verification_pending', 'under_review', 'approved', 'rejected') DEFAULT 'approved',

@@ -173,10 +173,20 @@ if ($uri === '/') {
     (new AdminController())->index();
 } elseif (preg_match('#^/admin/merchants/([0-9]+)/approve-kyc$#', $uri, $m) && $method === 'POST') {
     (new AdminController())->approveKyc($m[1]);
+} elseif (preg_match('#^/admin/merchants/([0-9]+)/reject-kyc$#', $uri, $m) && $method === 'POST') {
+    (new AdminController())->rejectKyc($m[1]);
 } elseif (preg_match('#^/admin/merchants/([0-9]+)/toggle-status$#', $uri, $m) && $method === 'POST') {
     (new AdminController())->toggleStatus($m[1]);
+} elseif (preg_match('#^/admin/merchants/([0-9]+)/update-fee$#', $uri, $m) && $method === 'POST') {
+    (new AdminController())->updateMerchantFee($m[1]);
+} elseif (preg_match('#^/admin/merchants/([0-9]+)/adjust-balance$#', $uri, $m) && $method === 'POST') {
+    (new AdminController())->adjustMerchantBalance($m[1]);
 } elseif (preg_match('#^/admin/settlements/([0-9]+)/process$#', $uri, $m) && $method === 'POST') {
     (new AdminController())->processSettlement($m[1]);
+} elseif ($uri === '/admin/settings/update' && $method === 'POST') {
+    (new AdminController())->updatePlatformSettings();
+} elseif (preg_match('#^/admin/disputes/([0-9]+)/resolve$#', $uri, $m) && $method === 'POST') {
+    (new AdminController())->resolveDispute($m[1]);
 
 // Public Customer Checkout & Paystack Routes
 } elseif ($uri === '/checkout') {
