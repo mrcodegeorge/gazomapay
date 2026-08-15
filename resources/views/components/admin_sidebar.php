@@ -9,7 +9,7 @@ function isAdminNavActive(string $path, string $currentRoute): string {
     return (strpos($currentRoute, $path) === 0 && $path !== '/admin') ? 'bg-surface-container-high text-primary font-bold border-r-2 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high';
 }
 ?>
-<aside class="w-[260px] h-screen fixed left-0 top-0 bg-surface border-r border-outline-variant flex flex-col py-6 px-4 z-50 select-none">
+<aside class="w-[260px] h-screen fixed left-0 top-0 bg-surface border-r border-outline-variant flex flex-col py-6 px-4 z-50 select-none font-body">
     <!-- Brand Header -->
     <div class="flex items-center gap-3 mb-8 px-2">
         <a href="/admin" class="flex items-center gap-3">
@@ -27,32 +27,32 @@ function isAdminNavActive(string $path, string $currentRoute): string {
 
         <a href="/admin" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isAdminNavActive('/admin', $currentRoute) ?>">
             <span class="material-symbols-outlined text-[20px]">space_dashboard</span>
-            <span>Platform Command</span>
+            <span>Platform Overview</span>
         </a>
 
-        <a href="/admin#merchants" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200">
+        <a href="/admin/merchants" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isAdminNavActive('/admin/merchants', $currentRoute) ?>">
             <span class="material-symbols-outlined text-[20px]">store</span>
             <span>Merchants & KYB</span>
         </a>
 
-        <a href="/admin#settlements" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200">
+        <a href="/admin/settlements" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isAdminNavActive('/admin/settlements', $currentRoute) ?>">
             <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
-            <span>Settlement Clearance</span>
+            <span>Settlement Clearances</span>
         </a>
 
-        <a href="/admin#disputes" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200">
+        <a href="/admin/disputes" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isAdminNavActive('/admin/disputes', $currentRoute) ?>">
             <span class="material-symbols-outlined text-[20px]">gavel</span>
             <span>Platform Disputes</span>
         </a>
 
         <div class="px-3 pt-6 pb-2 font-label-caps text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">System Governance</div>
 
-        <a href="/admin#settings" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200">
+        <a href="/admin/settings" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isAdminNavActive('/admin/settings', $currentRoute) ?>">
             <span class="material-symbols-outlined text-[20px]">settings_suggest</span>
             <span>Gateway Settings</span>
         </a>
 
-        <a href="/admin#audit" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200">
+        <a href="/admin/audit-logs" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isAdminNavActive('/admin/audit-logs', $currentRoute) ?>">
             <span class="material-symbols-outlined text-[20px]">verified_user</span>
             <span>System Audit Trail</span>
         </a>

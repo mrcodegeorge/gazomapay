@@ -12,11 +12,14 @@ require_once __DIR__ . '/../../config/database.php';
 
 class AdminController {
 
+    /**
+     * Menu 1: Platform Overview Dashboard
+     * Route: GET /admin
+     */
     public function index(): void {
         AuthMiddleware::handle();
         $pdo = Database::getConnection();
 
-        // 1. System High-Level KPI Metrics
         $stmtVol = $pdo->query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE status = 'successful'");
         $totalSystemVolume = (float)$stmtVol->fetchColumn();
 
@@ -32,41 +35,29 @@ class AdminController {
         $stmtDisputesCount = $pdo->query("SELECT COUNT(*) FROM disputes WHERE status IN ('needs_response', 'under_review')");
         $activeDisputesCount = (int)$stmtDisputesCount->fetchColumn();
 
-        // 2. Merchants Directory List
-        $stmtMch = $pdo->query("SELECT * FROM merchants ORDER BY created_at DESC");
+        $stmtMch = $pdo->query("SELECT * FROM merchants ORDER BY created_at DESC LIMIT 10");
         $merchants = $stmtMch->fetchAll(PDO::FETCH_ASSOC);
 
-        // 3. Pending Platform Settlement Requests
         $stmtSet = $pdo->query("
             SELECT s.*, m.name as merchant_name, m.email as merchant_email 
             FROM settlements s 
             JOIN merchants m ON s.merchant_id = m.id 
-            ORDER BY s.created_at DESC
+            ORDER BY s.created_at DESC LIMIT 10
         ");
         $settlements = $stmtSet->fetchAll(PDO::FETCH_ASSOC);
 
-        // 4. System-Wide Disputes & Chargebacks
         $stmtDsp = $pdo->query("
             SELECT d.*, m.name as merchant_name, t.reference as tx_reference 
             FROM disputes d 
             JOIN merchants m ON d.merchant_id = m.id 
             JOIN transactions t ON d.transaction_id = t.id 
-            ORDER BY d.created_at DESC
+            ORDER BY d.created_at DESC LIMIT 10
         ");
         $disputes = $stmtDsp->fetchAll(PDO::FETCH_ASSOC);
 
-        // 5. Global Platform Settings
-        $stmtSettings = $pdo->query("SELECT setting_key, setting_value FROM platform_settings");
-        $rawSettings = $stmtSettings->fetchAll(PDO::FETCH_KEY_PAIR);
-        $platformSettings = [
-            'platform_fee_percent' => $rawSettings['platform_fee_percent'] ?? '1.50',
-            'platform_fee_flat' => $rawSettings['platform_fee_flat'] ?? '0.50',
-            'maintenance_mode' => $rawSettings['maintenance_mode'] ?? '0',
-            'gateway_driver' => $rawSettings['gateway_driver'] ?? 'Sandbox Payment Gateway'
-        ];
+        $platformSettings = $this->getPlatformSettingsData();
 
-        // 6. Global System Audit Trail Logs
-        $stmtLogs = $pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 30");
+        $stmtLogs = $pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 15");
         $systemLogs = $stmtLogs->fetchAll(PDO::FETCH_ASSOC);
 
         View::render('admin/index', [
@@ -85,6 +76,167 @@ class AdminController {
         ], 'admin');
     }
 
+    /**
+     * Menu 2: Dedicated Merchants & KYB Clearance Center
+     * Route: GET /admin/merchants
+     */
+    public function merchantsPage(): void {
+        AuthMiddleware::handle();
+        $pdo = Database::getConnection();
+
+        $kycFilter = $_GET['kyc_status'] ?? 'all';
+        $search = trim($_GET['search'] ?? '');
+
+        $sql = "SELECT * FROM merchants WHERE 1=1";
+        $params = [];
+
+        if ($kycFilter !== 'all') {
+            $sql .= " AND kyc_status = ?";
+            $params[] = $kycFilter;
+        }
+
+        if ($search !== '') {
+            $sql .= " AND (name LIKE ? OR email LIKE ? OR merchant_id LIKE ?)";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+        }
+
+        $sql .= " ORDER BY created_at DESC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $merchants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        View::render('admin/merchants', [
+            'pageTitle' => 'Merchants Directory & KYB Clearance',
+            'pageSubtitle' => 'Review business registration documents, grant KYB approvals, adjust merchant balances, and set custom fee structures.',
+            'merchants' => $merchants,
+            'kycFilter' => $kycFilter,
+            'search' => $search
+        ], 'admin');
+    }
+
+    /**
+     * Menu 3: Dedicated Settlement Clearances Page
+     * Route: GET /admin/settlements
+     */
+    public function settlementsPage(): void {
+        AuthMiddleware::handle();
+        $pdo = Database::getConnection();
+
+        $statusFilter = $_GET['status'] ?? 'all';
+        $sql = "
+            SELECT s.*, m.name as merchant_name, m.email as merchant_email 
+            FROM settlements s 
+            JOIN merchants m ON s.merchant_id = m.id 
+            WHERE 1=1
+        ";
+        $params = [];
+
+        if ($statusFilter !== 'all') {
+            $sql .= " AND s.status = ?";
+            $params[] = $statusFilter;
+        }
+
+        $sql .= " ORDER BY s.created_at DESC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $settlements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        View::render('admin/settlements', [
+            'pageTitle' => 'Platform Settlement Payout Clearances',
+            'pageSubtitle' => 'Review merchant payout requests and execute double-entry ledger settlement releases.',
+            'settlements' => $settlements,
+            'statusFilter' => $statusFilter
+        ], 'admin');
+    }
+
+    /**
+     * Menu 4: Dedicated Platform Disputes Page
+     * Route: GET /admin/disputes
+     */
+    public function disputesPage(): void {
+        AuthMiddleware::handle();
+        $pdo = Database::getConnection();
+
+        $stmtDsp = $pdo->query("
+            SELECT d.*, m.name as merchant_name, t.reference as tx_reference, c.name as customer_name 
+            FROM disputes d 
+            JOIN merchants m ON d.merchant_id = m.id 
+            JOIN transactions t ON d.transaction_id = t.id 
+            LEFT JOIN customers c ON d.customer_id = c.id
+            ORDER BY d.created_at DESC
+        ");
+        $disputes = $stmtDsp->fetchAll(PDO::FETCH_ASSOC);
+
+        View::render('admin/disputes', [
+            'pageTitle' => 'Global Platform Disputes & Chargebacks',
+            'pageSubtitle' => 'System-wide customer disputes requiring superadmin override resolution.',
+            'disputes' => $disputes
+        ], 'admin');
+    }
+
+    /**
+     * Menu 5: Dedicated Gateway & Fee Engine Settings Page
+     * Route: GET /admin/settings
+     */
+    public function settingsPage(): void {
+        AuthMiddleware::handle();
+        $platformSettings = $this->getPlatformSettingsData();
+
+        View::render('admin/settings', [
+            'pageTitle' => 'Gateway & Fee Engine Configuration',
+            'pageSubtitle' => 'Update global processing fee rates, emergency maintenance mode, and payment gateway drivers.',
+            'platformSettings' => $platformSettings
+        ], 'admin');
+    }
+
+    /**
+     * Menu 6: Dedicated System Audit Trail Page
+     * Route: GET /admin/audit-logs
+     */
+    public function auditLogsPage(): void {
+        AuthMiddleware::handle();
+        $pdo = Database::getConnection();
+
+        $search = trim($_GET['search'] ?? '');
+        $sql = "SELECT * FROM audit_logs WHERE 1=1";
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= " AND (action LIKE ? OR user_email LIKE ? OR ip_address LIKE ? OR details LIKE ?)";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+        }
+
+        $sql .= " ORDER BY created_at DESC LIMIT 100";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $systemLogs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        View::render('admin/audit', [
+            'pageTitle' => 'Global Immutable System Audit Trail',
+            'pageSubtitle' => 'Complete security logging for platform actions, balance adjustments, and operator clearances.',
+            'systemLogs' => $systemLogs,
+            'search' => $search
+        ], 'admin');
+    }
+
+    private function getPlatformSettingsData(): array {
+        $pdo = Database::getConnection();
+        $stmtSettings = $pdo->query("SELECT setting_key, setting_value FROM platform_settings");
+        $rawSettings = $stmtSettings->fetchAll(PDO::FETCH_KEY_PAIR);
+
+        return [
+            'platform_fee_percent' => $rawSettings['platform_fee_percent'] ?? '1.50',
+            'platform_fee_flat' => $rawSettings['platform_fee_flat'] ?? '0.50',
+            'maintenance_mode' => $rawSettings['maintenance_mode'] ?? '0',
+            'gateway_driver' => $rawSettings['gateway_driver'] ?? 'Sandbox Payment Gateway'
+        ];
+    }
+
     public function approveKyc(string $id): void {
         AuthMiddleware::handle();
         $pdo = Database::getConnection();
@@ -95,7 +247,7 @@ class AdminController {
         AuditLogger::log('admin.kyc_approved', "Approved KYB verification & activated merchant #{$id}");
         Response::setFlash('success', "Merchant #{$id} KYB verification approved!");
 
-        Response::redirect('/admin');
+        Response::redirect($_SERVER['HTTP_REFERER'] ?? '/admin/merchants');
     }
 
     public function rejectKyc(string $id): void {
@@ -108,7 +260,7 @@ class AdminController {
         AuditLogger::log('admin.kyc_rejected', "Rejected KYB verification for merchant #{$id}");
         Response::setFlash('error', "Merchant #{$id} KYB verification rejected.");
 
-        Response::redirect('/admin');
+        Response::redirect($_SERVER['HTTP_REFERER'] ?? '/admin/merchants');
     }
 
     public function toggleStatus(string $id): void {
@@ -128,7 +280,7 @@ class AdminController {
             Response::setFlash('success', "Merchant #{$id} status set to {$newStatus}.");
         }
 
-        Response::redirect('/admin');
+        Response::redirect($_SERVER['HTTP_REFERER'] ?? '/admin/merchants');
     }
 
     public function updateMerchantFee(string $id): void {
@@ -145,7 +297,7 @@ class AdminController {
         AuditLogger::log('admin.merchant_fee_updated', "Updated custom fee rate for merchant #{$id} ({$feePct}% + GH₵ {$feeFlat})");
         Response::setFlash('success', "Custom fee rate saved for merchant #{$id}!");
 
-        Response::redirect('/admin');
+        Response::redirect($_SERVER['HTTP_REFERER'] ?? '/admin/merchants');
     }
 
     public function adjustMerchantBalance(string $id): void {
@@ -159,7 +311,7 @@ class AdminController {
 
         if ($amount <= 0) {
             Response::setFlash('error', 'Please enter a positive adjustment amount.');
-            Response::redirect('/admin');
+            Response::redirect($_SERVER['HTTP_REFERER'] ?? '/admin/merchants');
         }
 
         $stmtFetch = $pdo->prepare("SELECT available_balance FROM merchants WHERE id = ?");
@@ -174,7 +326,7 @@ class AdminController {
         AuditLogger::log('admin.balance_adjusted', "Manual {$adjustmentType} of GH₵ {$amount} for merchant #{$id}. Reason: {$reason}");
         Response::setFlash('success', "Merchant #{$id} balance adjusted successfully by GH₵ {$amount} ({$adjustmentType}).");
 
-        Response::redirect('/admin');
+        Response::redirect($_SERVER['HTTP_REFERER'] ?? '/admin/merchants');
     }
 
     public function processSettlement(string $id): void {
@@ -208,7 +360,7 @@ class AdminController {
             Response::setFlash('success', "Settlement {$s['reference']} (GH₵ " . number_format($s['net_amount'], 2) . ") completed & ledger balanced!");
         }
 
-        Response::redirect('/admin');
+        Response::redirect($_SERVER['HTTP_REFERER'] ?? '/admin/settlements');
     }
 
     public function updatePlatformSettings(): void {
@@ -228,7 +380,7 @@ class AdminController {
         AuditLogger::log('admin.platform_settings_updated', "Updated global platform settings (Fee: {$feePct}% + GH₵ {$feeFlat}, Maint: {$maintMode})");
         Response::setFlash('success', 'Global platform settings updated successfully!');
 
-        Response::redirect('/admin');
+        Response::redirect($_SERVER['HTTP_REFERER'] ?? '/admin/settings');
     }
 
     public function resolveDispute(string $id): void {
@@ -242,6 +394,6 @@ class AdminController {
         AuditLogger::log('admin.dispute_resolved', "Super Admin set dispute #{$id} status to {$status}");
         Response::setFlash('success', "Dispute #{$id} status updated to {$status}.");
 
-        Response::redirect('/admin');
+        Response::redirect($_SERVER['HTTP_REFERER'] ?? '/admin/disputes');
     }
 }

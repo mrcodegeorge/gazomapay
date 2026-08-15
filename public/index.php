@@ -168,9 +168,19 @@ if ($uri === '/') {
 } elseif ($uri === '/settings/update-password' && $method === 'POST') {
     (new SettingsController())->updatePassword();
 
-// Super Admin Platform Dashboard
-} elseif ($uri === '/admin') {
+// Super Admin Platform Dashboard & Standalone Pages
+} elseif ($uri === '/admin' || $uri === '/admin/overview') {
     (new AdminController())->index();
+} elseif (strpos($uri, '/admin/merchants') === 0 && $method === 'GET') {
+    (new AdminController())->merchantsPage();
+} elseif (strpos($uri, '/admin/settlements') === 0 && $method === 'GET') {
+    (new AdminController())->settlementsPage();
+} elseif (strpos($uri, '/admin/disputes') === 0 && $method === 'GET') {
+    (new AdminController())->disputesPage();
+} elseif (strpos($uri, '/admin/settings') === 0 && $method === 'GET') {
+    (new AdminController())->settingsPage();
+} elseif (strpos($uri, '/admin/audit-logs') === 0 && $method === 'GET') {
+    (new AdminController())->auditLogsPage();
 } elseif (preg_match('#^/admin/merchants/([0-9]+)/approve-kyc$#', $uri, $m) && $method === 'POST') {
     (new AdminController())->approveKyc($m[1]);
 } elseif (preg_match('#^/admin/merchants/([0-9]+)/reject-kyc$#', $uri, $m) && $method === 'POST') {
