@@ -163,14 +163,20 @@ if ($uri === '/') {
 // Settings
 } elseif ($uri === '/settings' || $uri === '/settings/profile') {
     (new SettingsController())->index();
-} elseif ($uri === '/settings/profile' && $method === 'POST') {
+} elseif ($uri === '/settings/update-profile' && $method === 'POST') {
     (new SettingsController())->updateProfile();
-} elseif ($uri === '/settings/team/add' && $method === 'POST') {
-    (new SettingsController())->addTeamMember();
+} elseif ($uri === '/settings/update-password' && $method === 'POST') {
+    (new SettingsController())->updatePassword();
 
-// Admin Panel
+// Super Admin Platform Dashboard
 } elseif ($uri === '/admin') {
     (new AdminController())->index();
+} elseif (preg_match('#^/admin/merchants/([0-9]+)/approve-kyc$#', $uri, $m) && $method === 'POST') {
+    (new AdminController())->approveKyc($m[1]);
+} elseif (preg_match('#^/admin/merchants/([0-9]+)/toggle-status$#', $uri, $m) && $method === 'POST') {
+    (new AdminController())->toggleStatus($m[1]);
+} elseif (preg_match('#^/admin/settlements/([0-9]+)/process$#', $uri, $m) && $method === 'POST') {
+    (new AdminController())->processSettlement($m[1]);
 
 // Public Customer Checkout & Paystack Routes
 } elseif ($uri === '/checkout') {

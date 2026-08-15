@@ -79,6 +79,11 @@ function isNavActive(string $path, string $currentRoute): string {
             <span class="material-symbols-outlined text-[20px]">settings</span>
             <span>Settings</span>
         </a>
+
+        <a href="/admin" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/admin', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">shield_person</span>
+            <span>Super Admin</span>
+        </a>
     </nav>
 
     <!-- Merchant Footer Card -->
