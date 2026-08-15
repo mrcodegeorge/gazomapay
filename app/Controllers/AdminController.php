@@ -56,7 +56,7 @@ class AdminController {
             'merchants' => $merchants,
             'settlements' => $settlements,
             'systemLogs' => $systemLogs
-        ]);
+        ], 'admin');
     }
 
     public function approveKyc(string $id): void {
