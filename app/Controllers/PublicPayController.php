@@ -46,9 +46,21 @@ class PublicPayController {
         $customerEmail = trim($_POST['customer_email'] ?? '');
         $customerPhone = trim($_POST['customer_phone'] ?? '');
         $paymentMethod = trim($_POST['payment_method'] ?? 'card');
+        $provider = trim($_POST['provider'] ?? 'mtn');
 
         if (empty($customerName) || empty($customerEmail)) {
             Response::json(['success' => false, 'message' => 'Name and email are required'], 400);
+        }
+
+        // If Mobile Money selected, process via white-labeled Paystack Charge API
+        if ($paymentMethod === 'mobile_money') {
+            require_once __DIR__ . '/PaystackController.php';
+            $_POST['amount'] = $link['amount'];
+            $_POST['email'] = $customerEmail;
+            $_POST['phone'] = $customerPhone;
+            $_POST['provider'] = $provider;
+            (new PaystackController())->chargeMomo();
+            return;
         }
 
         $gateway = new SandboxPaymentGateway();
@@ -61,6 +73,25 @@ class PublicPayController {
             'customer_phone' => $customerPhone,
             'payment_method' => $paymentMethod
         ]);
+
+        if (!empty($result['success']) && !empty($link['subscription_plan_id'])) {
+            $stmtCust = $pdo->prepare("SELECT id FROM customers WHERE merchant_id = ? AND email = ?");
+            $stmtCust->execute([$link['merchant_id'], $customerEmail]);
+            $cId = $stmtCust->fetchColumn();
+
+            if ($cId) {
+                $stmtPlan = $pdo->prepare("SELECT billing_interval FROM subscription_plans WHERE id = ?");
+                $stmtPlan->execute([$link['subscription_plan_id']]);
+                $interval = $stmtPlan->fetchColumn() ?: 'monthly';
+
+                $daysMap = ['daily' => 1, 'weekly' => 7, 'monthly' => 30, 'quarterly' => 90, 'yearly' => 365];
+                $addDays = $daysMap[$interval] ?? 30;
+                $nextBillingDate = date('Y-m-d', strtotime("+{$addDays} days"));
+
+                $insSub = $pdo->prepare("INSERT INTO subscriptions (merchant_id, customer_id, plan_id, status, next_billing_date) VALUES (?, ?, ?, 'active', ?)");
+                $insSub->execute([$link['merchant_id'], $cId, $link['subscription_plan_id'], $nextBillingDate]);
+            }
+        }
 
         Response::json($result);
     }

@@ -12,10 +12,10 @@ class DashboardController {
         $pdo = Database::getConnection();
         $merchantId = Auth::merchantId();
 
-        // 1. Available Balance
-        $stmtMch = $pdo->prepare("SELECT available_balance, pending_balance, settled_balance FROM merchants WHERE id = ?");
+        // 1. Available Balance & Onboarding Status
+        $stmtMch = $pdo->prepare("SELECT available_balance, pending_balance, settled_balance, onboarding_completed, onboarding_step FROM merchants WHERE id = ?");
         $stmtMch->execute([$merchantId]);
-        $merchant = $stmtMch->fetch();
+        $merchant = $stmtMch->fetch(PDO::FETCH_ASSOC);
         $availableBalance = (float)($merchant['available_balance'] ?? 28560.00);
 
         // 2. Metrics (Total Volume, Successful Transactions, Customers)
@@ -48,6 +48,7 @@ class DashboardController {
         View::render('dashboard/index', [
             'pageTitle' => 'Dashboard',
             'pageSubtitle' => "Welcome back, " . htmlspecialchars(Auth::user()['name'] ?? 'John') . "! Here's what's happening with your business.",
+            'merchant' => $merchant,
             'availableBalance' => $availableBalance,
             'totalVolume' => $totalVolume,
             'successfulTxCount' => $successfulTxCount,

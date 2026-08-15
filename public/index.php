@@ -23,6 +23,8 @@ require_once __DIR__ . '/../app/Controllers/SettingsController.php';
 require_once __DIR__ . '/../app/Controllers/AdminController.php';
 require_once __DIR__ . '/../app/Controllers/ApiController.php';
 require_once __DIR__ . '/../app/Controllers/PublicWebController.php';
+require_once __DIR__ . '/../app/Controllers/PaystackController.php';
+require_once __DIR__ . '/../app/Controllers/DisputeController.php';
 
 Auth::initSession();
 
@@ -30,9 +32,9 @@ $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 // Auto-login default merchant user if dashboard route accessed without active session
-$publicWebRoutes = ['/', '/solutions', '/pricing', '/developers', '/about', '/security', '/contact', '/login', '/register'];
+$publicWebRoutes = ['/', '/solutions', '/pricing', '/developers', '/about', '/security', '/contact', '/login', '/register', '/checkout'];
 if (!Auth::check() && !in_array($uri, $publicWebRoutes)) {
-    if (strpos($uri, '/pay/') !== 0 && strpos($uri, '/api/') !== 0) {
+    if (strpos($uri, '/pay/') !== 0 && strpos($uri, '/api/') !== 0 && strpos($uri, '/checkout') !== 0) {
         Auth::login('admin@gazomapay.com', 'password123');
     }
 }
@@ -53,7 +55,7 @@ if ($uri === '/') {
 } elseif ($uri === '/contact') {
     (new PublicWebController())->contact();
 
-// Auth Routes
+// Auth & Onboarding Routes
 } elseif ($uri === '/login') {
     $ctrl = new AuthController();
     ($method === 'POST') ? $ctrl->processLogin() : $ctrl->showLogin();
@@ -62,6 +64,12 @@ if ($uri === '/') {
     ($method === 'POST') ? $ctrl->processRegister() : $ctrl->showRegister();
 } elseif ($uri === '/logout') {
     (new AuthController())->logout();
+} elseif ($uri === '/onboarding') {
+    (new OnboardingController())->index();
+} elseif ($uri === '/onboarding/step' && $method === 'POST') {
+    (new OnboardingController())->saveStep();
+} elseif ($uri === '/onboarding/complete' && $method === 'POST') {
+    (new OnboardingController())->complete();
 
 // Merchant Dashboard
 } elseif ($uri === '/dashboard') {
@@ -91,6 +99,16 @@ if ($uri === '/') {
 } elseif ($uri === '/settlements/request' && $method === 'POST') {
     (new SettlementController())->request();
 
+// Disputes
+} elseif ($uri === '/disputes') {
+    (new DisputeController())->index();
+} elseif (preg_match('#^/disputes/([0-9]+)$#', $uri, $m)) {
+    (new DisputeController())->show($m[1]);
+} elseif (preg_match('#^/disputes/([0-9]+)/evidence$#', $uri, $m) && $method === 'POST') {
+    (new DisputeController())->submitEvidence($m[1]);
+} elseif (preg_match('#^/disputes/([0-9]+)/accept$#', $uri, $m) && $method === 'POST') {
+    (new DisputeController())->acceptDispute($m[1]);
+
 // Payment Links
 } elseif ($uri === '/payment-links') {
     (new PaymentLinkController())->index();
@@ -117,6 +135,14 @@ if ($uri === '/') {
     (new SubscriptionController())->index();
 } elseif ($uri === '/subscriptions/plan/create' && $method === 'POST') {
     (new SubscriptionController())->createPlan();
+} elseif ($uri === '/subscriptions/create' && $method === 'POST') {
+    (new SubscriptionController())->createSubscription();
+} elseif (preg_match('#^/subscriptions/pause/([0-9]+)$#', $uri, $m) && $method === 'POST') {
+    (new SubscriptionController())->togglePause($m[1]);
+} elseif (preg_match('#^/subscriptions/cancel/([0-9]+)$#', $uri, $m) && $method === 'POST') {
+    (new SubscriptionController())->cancelSubscription($m[1]);
+} elseif (preg_match('#^/subscriptions/plan/delete/([0-9]+)$#', $uri, $m) && $method === 'POST') {
+    (new SubscriptionController())->deletePlan($m[1]);
 
 // Analytics & Reports
 } elseif ($uri === '/analytics') {
@@ -146,7 +172,21 @@ if ($uri === '/') {
 } elseif ($uri === '/admin') {
     (new AdminController())->index();
 
+// Public Customer Checkout & Paystack Routes
+} elseif ($uri === '/checkout') {
+    View::render('checkout/index', ['amount' => 150.00, 'pageTitle' => 'Mobile Money Checkout'], 'pay');
+} elseif ($uri === '/api/paystack/charge-momo' && $method === 'POST') {
+    (new PaystackController())->chargeMomo();
+} elseif (preg_match('#^/api/paystack/verify/([0-9a-zA-Z_]+)$#', $uri, $m)) {
+    (new PaystackController())->verifyTransaction($m[1]);
+} elseif ($uri === '/api/paystack/webhook' && $method === 'POST') {
+    (new PaystackController())->handleWebhook();
+
 // REST API v1 Hardened Endpoints
+} elseif ($uri === '/api/v1/momo/charge' && $method === 'POST') {
+    (new PaystackController())->chargeMomo();
+} elseif (preg_match('#^/api/v1/momo/verify/([0-9a-zA-Z_]+)$#', $uri, $m)) {
+    (new PaystackController())->verifyTransaction($m[1]);
 } elseif ($uri === '/api/v1/payments' && $method === 'POST') {
     (new ApiController())->createPayment();
 } elseif (preg_match('#^/api/v1/payments/([0-9a-zA-Z_]+)/refund$#', $uri, $m) && $method === 'POST') {

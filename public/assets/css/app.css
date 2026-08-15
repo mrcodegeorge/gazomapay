@@ -741,7 +741,7 @@ table.data-table tr:hover td {
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
@@ -752,8 +752,9 @@ table.data-table tr:hover td {
   transition: opacity 0.2s ease;
 }
 .modal-overlay.open {
-  opacity: 1;
-  pointer-events: auto;
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .modal-card {

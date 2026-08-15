@@ -6,6 +6,7 @@ require_once __DIR__ . '/../Helpers/Response.php';
 require_once __DIR__ . '/../Helpers/Format.php';
 require_once __DIR__ . '/../Middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../Middleware/CsrfMiddleware.php';
+require_once __DIR__ . '/../Services/AuditLogger.php';
 require_once __DIR__ . '/../../config/database.php';
 
 class PaymentLinkController {
@@ -25,14 +26,26 @@ class PaymentLinkController {
         }
 
         $whereClause = implode(' AND ', $where);
-        $stmt = $pdo->prepare("SELECT * FROM payment_links WHERE {$whereClause} ORDER BY created_at DESC");
+        $stmt = $pdo->prepare("
+            SELECT pl.*, sp.name AS plan_name, sp.billing_interval 
+            FROM payment_links pl 
+            LEFT JOIN subscription_plans sp ON pl.subscription_plan_id = sp.id 
+            WHERE pl.{$whereClause} 
+            ORDER BY pl.created_at DESC
+        ");
         $stmt->execute($params);
-        $links = $stmt->fetchAll();
+        $links = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Fetch active merchant subscription plans for the link creation modal
+        $stmtPlans = $pdo->prepare("SELECT id, name, amount, billing_interval FROM subscription_plans WHERE merchant_id = ? AND status = 'active' ORDER BY name ASC");
+        $stmtPlans->execute([$merchantId]);
+        $subscriptionPlans = $stmtPlans->fetchAll(PDO::FETCH_ASSOC);
 
         View::render('payment_links/index', [
             'pageTitle' => 'Payment Links',
-            'pageSubtitle' => 'Create and manage payment links for your business.',
+            'pageSubtitle' => 'Create and manage one-time and recurring subscription payment links for your business.',
             'links' => $links,
+            'subscriptionPlans' => $subscriptionPlans,
             'search' => $search
         ]);
     }
@@ -46,18 +59,24 @@ class PaymentLinkController {
         $amount = (float)($_POST['amount'] ?? 0);
         $description = trim($_POST['description'] ?? '');
         $redirectUrl = trim($_POST['redirect_url'] ?? '');
+        $linkType = $_POST['link_type'] ?? 'one_time';
+        $subPlanId = !empty($_POST['subscription_plan_id']) ? (int)$_POST['subscription_plan_id'] : null;
+
         $token = 'PL_' . sprintf('%010d', rand(1000000000, 9999999999));
 
         if (empty($name) || $amount <= 0) {
-            Response::setFlash('error', 'Please provide a valid link name and amount');
+            Response::setFlash('error', 'Please provide a valid link name and positive amount');
             Response::redirect('/payment-links');
         }
 
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("INSERT INTO payment_links (merchant_id, token, name, description, amount, currency, status) VALUES (?, ?, ?, ?, ?, ?, 'active')");
-        $stmt->execute([$merchantId, $token, $name, $description, $amount, 'GHS']);
+        $stmt = $pdo->prepare("
+            INSERT INTO payment_links (merchant_id, subscription_plan_id, link_type, token, name, description, amount, currency, redirect_url, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'GHS', ?, 'active')
+        ");
+        $stmt->execute([$merchantId, $subPlanId, $linkType, $token, $name, $description, $amount, $redirectUrl]);
 
-        AuditLogger::log('payment_link.created', "Created payment link {$name} ({$token})");
+        AuditLogger::log('payment_link.created', "Created {$linkType} payment link {$name} ({$token})");
 
         Response::setFlash('success', 'Payment link created successfully!');
         Response::redirect('/payment-links');

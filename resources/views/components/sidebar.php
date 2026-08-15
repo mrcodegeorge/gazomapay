@@ -6,82 +6,92 @@ $merchantCode = htmlspecialchars($user['merchant_code'] ?? 'GZM_123456');
 
 function isNavActive(string $path, string $currentRoute): string {
     if ($path === '/dashboard' && ($currentRoute === '/' || $currentRoute === '/dashboard')) {
-        return 'active';
+        return 'bg-surface-container-high text-secondary dark:text-secondary-fixed-dim font-bold border-r-2 border-secondary dark:border-secondary-fixed-dim';
     }
-    return (strpos($currentRoute, $path) === 0 && $path !== '/dashboard') ? 'active' : '';
+    return (strpos($currentRoute, $path) === 0 && $path !== '/dashboard') ? 'bg-surface-container-high text-secondary dark:text-secondary-fixed-dim font-bold border-r-2 border-secondary dark:border-secondary-fixed-dim' : 'text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high';
 }
 ?>
-<aside class="sidebar">
-    <div class="sidebar-header">
-        <a href="/dashboard" class="brand-logo">
-            <div class="brand-icon">G</div>
-            <span>Gazoma Pay</span>
+<aside class="w-[260px] h-screen fixed left-0 top-0 bg-surface dark:bg-inverse-surface border-r border-outline-variant dark:border-outline flex flex-col py-6 px-4 z-50 select-none">
+    <!-- Brand Header -->
+    <div class="flex items-center gap-3 mb-8 px-2">
+        <a href="/dashboard" class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold text-xl shadow-sm">G</div>
+            <div>
+                <h1 class="font-headline-md text-headline-md font-bold text-on-surface dark:text-inverse-on-surface leading-none mb-0.5">Gazoma Pay</h1>
+                <p class="font-label-caps text-[11px] text-on-surface-variant uppercase tracking-wider">Fintech Infrastructure</p>
+            </div>
         </a>
-        <button class="sidebar-toggle" title="Toggle Sidebar">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-        </button>
     </div>
 
-    <nav class="sidebar-nav">
-        <a href="/dashboard" class="nav-item <?= isNavActive('/dashboard', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg></span>
+    <!-- Navigation List -->
+    <nav class="flex-1 overflow-y-auto space-y-1">
+        <a href="/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/dashboard', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">dashboard</span>
             <span>Dashboard</span>
         </a>
 
-        <a href="/transactions" class="nav-item <?= isNavActive('/transactions', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg></span>
+        <a href="/transactions" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/transactions', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">receipt_long</span>
             <span>Transactions</span>
         </a>
 
-        <a href="/customers" class="nav-item <?= isNavActive('/customers', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></span>
+        <a href="/customers" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/customers', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">group</span>
             <span>Customers</span>
         </a>
 
-        <a href="/settlements" class="nav-item <?= isNavActive('/settlements', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></span>
+        <a href="/settlements" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/settlements', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
             <span>Settlements</span>
         </a>
 
-        <a href="/payment-links" class="nav-item <?= isNavActive('/payment-links', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></span>
+        <a href="/disputes" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/disputes', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">gavel</span>
+            <span>Disputes</span>
+        </a>
+
+        <a href="/payment-links" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/payment-links', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">link</span>
             <span>Payment Links</span>
         </a>
 
-        <a href="/invoices" class="nav-item <?= isNavActive('/invoices', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span>
+        <a href="/invoices" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/invoices', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">description</span>
             <span>Invoices</span>
         </a>
 
-        <a href="/subscriptions" class="nav-item <?= isNavActive('/subscriptions', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></span>
+        <a href="/subscriptions" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/subscriptions', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">receipt</span>
             <span>Subscriptions</span>
         </a>
 
-        <a href="/analytics" class="nav-item <?= isNavActive('/analytics', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 012 2h2a2 2 0 012-2z"/></svg></span>
+        <a href="/analytics" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/analytics', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">analytics</span>
             <span>Analytics</span>
         </a>
 
-        <a href="/developer" class="nav-item <?= isNavActive('/developer', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg></span>
+        <a href="/developer" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/developer', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">code</span>
             <span>Developer</span>
         </a>
 
-        <a href="/settings" class="nav-item <?= isNavActive('/settings', $currentRoute) ?>">
-            <span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
+        <a href="/settings" class="flex items-center gap-3 px-3 py-2.5 rounded-lg font-body-md text-body-md transition-all duration-200 <?= isNavActive('/settings', $currentRoute) ?>">
+            <span class="material-symbols-outlined text-[20px]">settings</span>
             <span>Settings</span>
         </a>
     </nav>
 
-    <div class="sidebar-footer">
-        <div class="merchant-profile-card">
-            <div class="merchant-avatar">G</div>
-            <div class="merchant-info">
-                <div class="merchant-name"><?= $merchantName ?></div>
-                <div class="merchant-id">Merchant ID: <?= $merchantCode ?></div>
+    <!-- Merchant Footer Card -->
+    <div class="mt-auto pt-4 border-t border-outline-variant">
+        <div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/60 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold text-sm">G</div>
+            <div class="flex-1 min-w-0">
+                <div class="font-body-sm text-body-sm font-semibold text-on-surface truncate"><?= $merchantName ?></div>
+                <div class="font-label-caps text-[11px] text-on-surface-variant truncate"><?= $merchantCode ?></div>
             </div>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            <a href="/logout" title="Sign out" class="text-on-surface-variant hover:text-error transition-colors p-1 rounded">
+                <span class="material-symbols-outlined text-lg">logout</span>
+            </a>
         </div>
     </div>
 </aside>

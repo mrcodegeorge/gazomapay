@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `webhook_logs`;
 DROP TABLE IF EXISTS `webhook_endpoints`;
 DROP TABLE IF EXISTS `api_keys`;
+DROP TABLE IF EXISTS `disputes`;
 DROP TABLE IF EXISTS `refunds`;
 DROP TABLE IF EXISTS `subscriptions`;
 DROP TABLE IF EXISTS `subscription_plans`;
@@ -51,6 +52,8 @@ CREATE TABLE `merchants` (
   `available_balance` DECIMAL(15,2) DEFAULT 0.00,
   `pending_balance` DECIMAL(15,2) DEFAULT 0.00,
   `settled_balance` DECIMAL(15,2) DEFAULT 0.00,
+  `onboarding_completed` TINYINT(1) DEFAULT 0,
+  `onboarding_step` INT DEFAULT 1,
   `kyc_status` ENUM('verification_pending', 'under_review', 'approved', 'rejected') DEFAULT 'approved',
   `account_status` ENUM('pending', 'active', 'suspended', 'restricted', 'closed') DEFAULT 'active',
   `status` ENUM('active', 'suspended', 'pending') DEFAULT 'active',
@@ -158,11 +161,29 @@ CREATE TABLE `idempotency_keys` (
   INDEX `idx_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Subscription Plans Table
+CREATE TABLE `subscription_plans` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `merchant_id` INT NOT NULL,
+  `name` VARCHAR(191) NOT NULL,
+  `description` TEXT NULL,
+  `amount` DECIMAL(15,2) NOT NULL,
+  `currency` VARCHAR(8) DEFAULT 'GHS',
+  `billing_interval` ENUM('daily', 'weekly', 'monthly', 'quarterly', 'yearly') DEFAULT 'monthly',
+  `trial_days` INT DEFAULT 0,
+  `status` ENUM('active', 'inactive') DEFAULT 'active',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Payment Links Table
 CREATE TABLE `payment_links` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `token` VARCHAR(64) UNIQUE NOT NULL,
   `merchant_id` INT NOT NULL,
+  `subscription_plan_id` INT NULL,
+  `link_type` ENUM('one_time', 'recurring_subscription') DEFAULT 'one_time',
   `name` VARCHAR(191) NOT NULL,
   `description` TEXT NULL,
   `amount` DECIMAL(15,2) NOT NULL,
@@ -175,6 +196,7 @@ CREATE TABLE `payment_links` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`subscription_plan_id`) REFERENCES `subscription_plans`(`id`) ON DELETE SET NULL,
   INDEX `idx_token` (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -287,22 +309,6 @@ CREATE TABLE `settlements` (
   INDEX `idx_settle_ref` (`reference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Subscription Plans Table
-CREATE TABLE `subscription_plans` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `merchant_id` INT NOT NULL,
-  `name` VARCHAR(191) NOT NULL,
-  `description` TEXT NULL,
-  `amount` DECIMAL(15,2) NOT NULL,
-  `currency` VARCHAR(8) DEFAULT 'GHS',
-  `billing_interval` ENUM('daily', 'weekly', 'monthly', 'quarterly', 'yearly') DEFAULT 'monthly',
-  `trial_days` INT DEFAULT 0,
-  `status` ENUM('active', 'inactive') DEFAULT 'active',
-  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- Subscriptions Table
 CREATE TABLE `subscriptions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -401,4 +407,28 @@ CREATE TABLE `platform_settings` (
   `setting_value` TEXT NOT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Disputes Table
+CREATE TABLE `disputes` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `dispute_code` VARCHAR(64) UNIQUE NOT NULL,
+  `merchant_id` INT NOT NULL,
+  `transaction_id` INT NOT NULL,
+  `customer_id` INT NULL,
+  `amount` DECIMAL(15,2) NOT NULL,
+  `currency` VARCHAR(8) DEFAULT 'GHS',
+  `reason` ENUM('unauthorized_charge', 'fraudulent', 'product_not_received', 'duplicate_charge', 'subscription_cancelled', 'other') DEFAULT 'unauthorized_charge',
+  `evidence_text` TEXT NULL,
+  `evidence_file` VARCHAR(255) NULL,
+  `status` ENUM('needs_response', 'under_review', 'won', 'lost', 'accepted') DEFAULT 'needs_response',
+  `due_date` DATE NOT NULL,
+  `resolved_at` DATETIME NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`merchant_id`) REFERENCES `merchants`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`transaction_id`) REFERENCES `transactions`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE SET NULL,
+  INDEX `idx_dispute_status` (`merchant_id`, `status`),
+  INDEX `idx_dispute_code` (`dispute_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -11,38 +11,42 @@ $stmtN = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE merchant_id = ?
 $stmtN->execute([$mId]);
 $unreadCount = (int)$stmtN->fetchColumn();
 ?>
-<header class="top-header">
-    <div class="page-title-group">
-        <h1><?= htmlspecialchars($pageTitle ?? 'Dashboard') ?></h1>
-        <?php if (!empty($pageSubtitle)): ?>
-            <p><?= htmlspecialchars($pageSubtitle) ?></p>
-        <?php endif; ?>
+<header class="h-16 sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-outline-variant flex justify-between items-center w-full px-8 ml-[260px] max-w-[calc(100%-260px)]">
+    <!-- Left Section: Title & Subtitle -->
+    <div class="flex items-center gap-4">
+        <div>
+            <h1 class="font-headline-md text-headline-md font-bold text-on-surface leading-tight"><?= htmlspecialchars($pageTitle ?? 'Dashboard') ?></h1>
+            <?php if (!empty($pageSubtitle)): ?>
+                <p class="font-body-sm text-body-sm text-on-surface-variant hidden md:block"><?= htmlspecialchars($pageSubtitle) ?></p>
+            <?php endif; ?>
+        </div>
     </div>
 
-    <div class="header-actions">
-        <!-- Live/Test Mode Indicator -->
-        <div class="mode-badge" id="modeSwitchBtn" title="Switch environment mode">
-            <span class="mode-dot <?= $env === 'test' ? 'test' : '' ?>"></span>
-            <span><?= $env === 'test' ? 'Test mode' : 'Live mode' ?></span>
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    <!-- Right Section: Actions & User Avatar -->
+    <div class="flex items-center gap-5">
+        <!-- Live/Test Mode Toggle Indicator -->
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/60 text-body-sm font-medium">
+            <span class="w-2 h-2 rounded-full <?= $env === 'test' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 animate-pulse' ?>"></span>
+            <span class="font-label-caps text-label-caps uppercase font-bold text-on-surface"><?= $env === 'test' ? 'Test Mode' : 'Live Mode' ?></span>
         </div>
 
         <!-- Notifications Bell -->
-        <button class="icon-btn" onclick="openModal('notificationsModal')" title="Notifications">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <button class="relative hover:bg-surface-container-low p-2 rounded-full transition-colors flex items-center justify-center text-on-surface-variant cursor-pointer" onclick="openModal('notificationsModal')" title="Notifications">
+            <span class="material-symbols-outlined text-[22px]">notifications</span>
             <?php if ($unreadCount > 0): ?>
-                <span class="notification-dot"></span>
+                <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary ring-2 ring-surface"></span>
             <?php endif; ?>
         </button>
 
-        <!-- User Profile Dropdown -->
-        <div class="user-profile-btn" onclick="location.href='/settings/profile'">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
-            <div class="user-info">
-                <span class="user-name"><?= $userName ?></span>
-                <span class="user-role"><?= $userRole ?></span>
+        <!-- User Profile Dropdown Button -->
+        <a href="/settings/profile" class="flex items-center gap-3 hover:bg-surface-container-low p-1.5 px-2.5 rounded-full border border-outline-variant/60 transition-colors">
+            <div class="w-7 h-7 rounded-full bg-surface-variant flex items-center justify-center font-bold text-xs text-on-surface overflow-hidden">
+                <span class="material-symbols-outlined text-[18px]">person</span>
             </div>
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-        </div>
+            <div class="hidden sm:block text-left pr-1">
+                <div class="font-body-sm text-body-sm font-semibold text-on-surface leading-none mb-0.5"><?= $userName ?></div>
+                <div class="font-label-caps text-[10px] text-on-surface-variant leading-none uppercase"><?= $userRole ?></div>
+            </div>
+        </a>
     </div>
 </header>

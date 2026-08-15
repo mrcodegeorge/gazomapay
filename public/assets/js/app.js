@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.openModal = function(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
+            modal.classList.remove('hidden');
             modal.classList.add('open');
         }
     };
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById(modalId);
         if (modal) {
             modal.classList.remove('open');
+            modal.classList.add('hidden');
         }
     };
 });

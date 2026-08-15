@@ -78,7 +78,8 @@ class AuthController {
         $stmtUsr->execute([$merchantId, $userUuid, $name, $email, $passHash]);
 
         Auth::login($email, $password);
-        Response::redirect('/dashboard');
+        Response::setFlash('success', 'Welcome to Gazoma Pay! Please complete your merchant onboarding.');
+        Response::redirect('/onboarding');
     }
 
     public function logout(): void {

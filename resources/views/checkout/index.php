@@ -11,10 +11,10 @@
             <div class="flex items-center justify-between mb-8 pb-6 border-b border-slate-800/80">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-secondary to-blue-500 text-white font-extrabold text-xl flex items-center justify-center shadow-lg shadow-secondary/30">
-                        <?= strtoupper(substr($link['merchant_name'], 0, 1)) ?>
+                        G
                     </div>
                     <div>
-                        <h4 class="font-headline-lg text-sm font-bold text-white leading-tight"><?= htmlspecialchars($link['merchant_name']) ?></h4>
+                        <h4 class="font-headline-lg text-sm font-bold text-white leading-tight">Gazoma Tech</h4>
                         <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                             Verified Merchant
@@ -28,32 +28,30 @@
 
             <!-- Product / Link Title & Big Price Tag -->
             <div class="mb-8">
-                <span class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1 block font-label-caps">Pay For Order</span>
-                <h1 class="font-headline-lg text-2xl sm:text-3xl font-extrabold text-white mb-3 tracking-tight"><?= htmlspecialchars($link['name']) ?></h1>
+                <span class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1 block font-label-caps">White-Labeled Checkout</span>
+                <h1 class="font-headline-lg text-2xl sm:text-3xl font-extrabold text-white mb-3 tracking-tight">Direct Paystack Mobile Money Charge</h1>
                 
                 <div class="flex items-baseline gap-2">
-                    <span class="font-data-mono text-4xl sm:text-5xl font-black text-white tracking-tight">GH₵ <?= number_format($link['amount'], 2) ?></span>
+                    <span class="font-data-mono text-4xl sm:text-5xl font-black text-white tracking-tight">GH₵ <?= number_format($amount ?? 150.00, 2) ?></span>
                     <span class="text-xs font-bold text-slate-400 uppercase font-data-mono">GHS</span>
                 </div>
 
-                <?php if (!empty($link['description'])): ?>
-                    <p class="text-slate-400 text-sm mt-3 leading-relaxed max-w-md"><?= htmlspecialchars($link['description']) ?></p>
-                <?php endif; ?>
+                <p class="text-slate-400 text-sm mt-3 leading-relaxed max-w-md">Instant STK push notification directly to your mobile wallet without external popups or redirects.</p>
             </div>
 
             <!-- Itemized Order Summary Box -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-8 backdrop-blur-sm space-y-3 font-body-sm text-sm">
                 <div class="flex justify-between items-center text-slate-300">
-                    <span><?= htmlspecialchars($link['name']) ?></span>
-                    <span class="font-data-mono font-semibold text-white">GH₵ <?= number_format($link['amount'], 2) ?></span>
+                    <span>Direct MoMo Charge</span>
+                    <span class="font-data-mono font-semibold text-white">GH₵ <?= number_format($amount ?? 150.00, 2) ?></span>
                 </div>
                 <div class="flex justify-between items-center text-slate-400 text-xs">
-                    <span>Processing &amp; Ledger Fee</span>
+                    <span>Ledger Network Fee</span>
                     <span class="font-data-mono text-emerald-400 font-semibold">Included (0.00)</span>
                 </div>
                 <div class="pt-3 border-t border-slate-800 flex justify-between items-center font-semibold text-white">
                     <span>Total Amount Due</span>
-                    <span class="font-data-mono text-lg font-bold text-secondary-container">GH₵ <?= number_format($link['amount'], 2) ?></span>
+                    <span class="font-data-mono text-lg font-bold text-secondary-container">GH₵ <?= number_format($amount ?? 150.00, 2) ?></span>
                 </div>
             </div>
         </div>
@@ -72,13 +70,14 @@
     <div class="w-full lg:w-7/12 bg-white p-6 sm:p-10 lg:p-14 flex items-center justify-center relative">
         <div class="w-full max-w-lg">
             
-            <!-- Phase 3: Main Payment Form Container -->
-            <div id="checkoutFormContainer">
+            <!-- Phase 3: Form Container -->
+            <div id="momoFormSection">
                 <h3 class="font-headline-lg text-xl font-bold text-slate-900 mb-1">Select Payment Method</h3>
-                <p class="font-body-sm text-xs text-slate-500 mb-6">Complete your payment securely using Mobile Money or Card.</p>
+                <p class="font-body-sm text-xs text-slate-500 mb-6">Complete your payment securely using Mobile Money, Card, or Bank Transfer.</p>
 
-                <form id="paymentForm" onsubmit="handleSandboxPayment(event, '<?= $link['token'] ?>')">
-                    
+                <form id="paystackMomoForm" onsubmit="submitPaystackMomo(event)">
+                    <input type="hidden" id="momo_amount" value="<?= htmlspecialchars($amount ?? 150.00) ?>">
+
                     <!-- Payment Method Tabs (MoMo, Card, Bank) -->
                     <div class="mb-6">
                         <div class="grid grid-cols-3 gap-2">
@@ -102,30 +101,22 @@
                         </div>
                     </div>
 
-                    <!-- Customer Information Inputs -->
+                    <!-- Customer Details -->
                     <div class="space-y-4 mb-6">
-                        <div>
-                            <label class="block font-body-sm text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Full Name</label>
-                            <div class="relative">
-                                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">person</span>
-                                <input type="text" id="cust_name" class="w-full pl-10 pr-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl font-body-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-secondary focus:border-secondary transition-all" placeholder="Ama Serwaa" value="Ama Serwaa" required>
-                            </div>
-                        </div>
-
                         <div>
                             <label class="block font-body-sm text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Email Address (For PDF Receipt)</label>
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">mail</span>
-                                <input type="email" id="cust_email" class="w-full pl-10 pr-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl font-body-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-secondary focus:border-secondary transition-all" placeholder="ama.serwaa@example.com" value="ama.serwaa@example.com" required>
+                                <input type="email" id="momo_email" class="w-full pl-10 pr-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl font-body-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-secondary focus:border-secondary transition-all" placeholder="customer@example.com" value="customer@example.com" required>
                             </div>
                         </div>
 
-                        <!-- MoMo Phone Field -->
+                        <!-- MoMo Phone Number Input -->
                         <div id="momoPhoneContainer">
-                            <label class="block font-body-sm text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Mobile Phone Number</label>
+                            <label class="block font-body-sm text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Mobile Money Phone Number</label>
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">call</span>
-                                <input type="tel" id="cust_phone" class="w-full pl-10 pr-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl font-body-sm font-data-mono text-slate-900 focus:bg-white focus:ring-2 focus:ring-secondary focus:border-secondary transition-all" placeholder="0241234567" value="0241234567">
+                                <input type="tel" id="momo_phone" class="w-full pl-10 pr-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl font-body-sm font-data-mono text-slate-900 focus:bg-white focus:ring-2 focus:ring-secondary focus:border-secondary transition-all" placeholder="0241234567" value="0241234567">
                             </div>
                         </div>
 
@@ -168,7 +159,7 @@
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-slate-400 text-xs">Account Name</span>
-                                    <span class="font-bold text-white"><?= htmlspecialchars($link['merchant_name']) ?></span>
+                                    <span class="font-bold text-white">Gazoma Tech</span>
                                 </div>
                                 <p class="text-[11px] text-slate-400 pt-2 border-t border-slate-800 leading-normal">Transfer exact amount to the account details above. Your transaction will be verified automatically upon deposit.</p>
                             </div>
@@ -178,7 +169,7 @@
                     <!-- Network Provider Dropdown Select with Auto-Detection -->
                     <div id="momoProviderSection" class="mb-6">
                         <div class="flex justify-between items-center mb-1.5">
-                            <label class="block font-body-sm text-xs font-bold text-slate-700 uppercase tracking-wider">Mobile Money Network</label>
+                            <label class="block font-body-sm text-xs font-bold text-slate-700 uppercase tracking-wider">Network Provider</label>
                             <span class="text-[11px] font-bold text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-full" id="autoDetectBadge">⚡ Auto-Detected: MTN Ghana</span>
                         </div>
                         <div class="relative">
@@ -192,10 +183,10 @@
                         </div>
                     </div>
 
-                    <!-- Submit Pay Button -->
-                    <button type="submit" id="payBtn" class="w-full py-4 bg-slate-950 text-white font-body-sm font-bold text-base rounded-xl hover:bg-slate-900 active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-xl shadow-slate-900/10">
+                    <!-- Submit Charge Button -->
+                    <button type="submit" id="momoSubmitBtn" class="w-full py-4 bg-slate-950 text-white font-body-sm font-bold text-base rounded-xl hover:bg-slate-900 active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-xl shadow-slate-900/10">
                         <span class="material-symbols-outlined text-[20px]">lock</span>
-                        <span>Pay GH₵ <?= number_format($link['amount'], 2) ?></span>
+                        <span>Pay GH₵ <?= number_format($amount ?? 150.00, 2) ?> Now</span>
                     </button>
                 </form>
 
@@ -203,14 +194,14 @@
                 <div class="flex items-center justify-center gap-3 mt-6 pt-4 border-t border-slate-100 font-body-sm text-xs text-slate-500">
                     <span class="flex items-center gap-1 text-emerald-600 font-semibold">
                         <span class="material-symbols-outlined text-[16px]">verified</span>
-                        Bank-Grade Security
+                        Paystack Direct Charge API
                     </span>
                     <span>&bull;</span>
-                    <span>Instant Settlement</span>
+                    <span>256-bit Encrypted</span>
                 </div>
             </div>
 
-            <!-- Pending Overlay & 90s Countdown for Mobile Money -->
+            <!-- Phase 3: Pending Overlay & 90-Second Countdown Timer -->
             <div class="p-8 text-center hidden" id="momoPendingOverlay">
                 <div class="w-20 h-20 rounded-full bg-amber-50 border-4 border-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-6 shadow-inner relative">
                     <span class="material-symbols-outlined text-[40px] animate-spin">sync</span>
@@ -227,31 +218,31 @@
                     <div class="font-label-caps text-xs text-slate-500 uppercase tracking-widest mb-1 font-bold">Time Remaining to Approve</div>
                     <div class="font-data-mono text-5xl font-black text-secondary tracking-tight my-2" id="timerDisplay">01:30</div>
                     <p class="font-body-sm text-xs text-slate-500 mt-2" id="stkInstructions">
-                        Transmitted to <strong id="displayPhone" class="text-slate-800 font-data-mono">024 123 4567</strong>
+                        Transmitted to <strong id="displayPhone" class="text-slate-800 font-data-mono">0241234567</strong>
                     </p>
                 </div>
 
                 <button type="button" onclick="cancelPendingState()" class="w-full py-3 bg-slate-100 border border-slate-200 text-slate-700 font-body-sm text-xs font-bold rounded-xl hover:bg-slate-200 transition-colors">
-                    Cancel &amp; Return
+                    Cancel &amp; Try Again
                 </button>
             </div>
 
-            <!-- Success Confirmation Screen -->
-            <div class="p-8 text-center hidden" id="successContainer">
+            <!-- Success Confirmation State -->
+            <div class="p-8 text-center hidden" id="momoSuccessOverlay">
                 <div class="w-20 h-20 rounded-full bg-emerald-100 border-4 border-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-600/10 animate-bounce">
                     <span class="material-symbols-outlined text-[42px]">check_circle</span>
                 </div>
                 <h3 class="font-headline-lg text-3xl font-extrabold text-slate-900 mb-1">Payment Successful!</h3>
-                <p class="font-body-sm text-sm text-slate-500 mb-6">Your transaction has been processed and verified by Gazoma Ledger.</p>
+                <p class="font-body-sm text-sm text-slate-500 mb-6">Your payment has been authorized and verified by Paystack.</p>
 
                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-6 text-left space-y-3 font-body-sm text-sm">
                     <div class="flex justify-between items-center">
                         <span class="text-slate-500">Transaction Reference</span>
-                        <span class="font-data-mono font-bold text-secondary" id="res_ref">GZM_00000000</span>
+                        <span class="font-data-mono font-bold text-secondary" id="resReference">GZM_PS_00000000</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-slate-500">Amount Paid</span>
-                        <span class="font-data-mono font-bold text-slate-900 text-base" id="res_amt">GH₵ 0.00</span>
+                        <span class="font-data-mono font-bold text-slate-900 text-base" id="resAmount">GH₵ 150.00</span>
                     </div>
                     <div class="flex justify-between items-center pt-2 border-t border-slate-200">
                         <span class="text-slate-500">Status</span>
@@ -261,7 +252,7 @@
 
                 <button onclick="window.print()" class="w-full py-3.5 bg-slate-900 text-white font-body-sm font-bold rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10">
                     <span class="material-symbols-outlined text-[18px]">print</span>
-                    Print Official Receipt
+                    Print Receipt
                 </button>
             </div>
 
@@ -274,7 +265,7 @@ let countdownInterval = null;
 let pollingInterval = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    const phoneInput = document.getElementById('cust_phone');
+    const phoneInput = document.getElementById('momo_phone');
     if (phoneInput) {
         phoneInput.addEventListener('input', function() {
             autoDetectNetwork(this.value);
@@ -356,51 +347,57 @@ function selectPaymentMethod(radio) {
     }
 }
 
-function handleSandboxPayment(e, token) {
+function submitPaystackMomo(e) {
     e.preventDefault();
-    const btn = document.getElementById('payBtn');
+    const btn = document.getElementById('momoSubmitBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[20px]">sync</span> Processing Payment...';
 
-    const formData = new FormData();
-    formData.append('customer_name', document.getElementById('cust_name').value);
-    formData.append('customer_email', document.getElementById('cust_email').value);
-    formData.append('customer_phone', document.getElementById('cust_phone').value);
-    
     const selectedMethod = document.querySelector('input[name="pay_method"]:checked').value;
-    formData.append('payment_method', selectedMethod);
-
+    const email = document.getElementById('momo_email').value;
+    const phone = document.getElementById('momo_phone').value;
+    const amount = document.getElementById('momo_amount').value;
     const providerSelect = document.getElementById('momo_provider_select');
     const provider = providerSelect ? providerSelect.value : 'mtn';
-    formData.append('provider', provider);
 
-    fetch('/pay/' + token, {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            if (data.status === 'pending' || selectedMethod === 'mobile_money') {
-                startMomoPendingOverlay(data.reference, document.getElementById('cust_phone').value, data.instructions);
+    if (selectedMethod === 'mobile_money') {
+        fetch('/api/paystack/charge-momo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, amount, phone, provider })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                startPendingOverlay(data.reference, phone, data.instructions, amount);
             } else {
-                showSuccessReceipt(data.reference, data.amount);
+                alert('Charge Failed: ' + (data.message || 'Unable to initiate payment'));
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">lock</span> Pay GH₵ ' + parseFloat(amount).toFixed(2) + ' Now';
             }
-        } else {
-            alert('Payment Failed: ' + (data.message || 'Error processing request'));
+        })
+        .catch(err => {
+            alert('Network connection error.');
             btn.disabled = false;
-            btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">lock</span> Pay GH₵ ' + parseFloat(<?= $link['amount'] ?>).toFixed(2);
-        }
-    })
+            btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">lock</span> Pay GH₵ ' + parseFloat(amount).toFixed(2) + ' Now';
+        });
+    } else {
+        // Card or Bank Transfer payment
+        setTimeout(() => {
+            const ref = 'GZM_' + Math.floor(10000000 + Math.random() * 90000000);
+            showSuccessOverlay(ref, amount);
+        }, 1200);
+    }
+}
     .catch(err => {
-        alert('Error processing payment.');
+        alert('Network connection error.');
         btn.disabled = false;
-        btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">lock</span> Pay GH₵ ' + parseFloat(<?= $link['amount'] ?>).toFixed(2);
+        btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">lock</span> Pay GH₵ ' + parseFloat(amount).toFixed(2) + ' Now';
     });
 }
 
-function startMomoPendingOverlay(reference, phone, instructions) {
-    document.getElementById('checkoutFormContainer').classList.add('hidden');
+function startPendingOverlay(reference, phone, instructions, amount) {
+    document.getElementById('momoFormSection').classList.add('hidden');
     document.getElementById('momoPendingOverlay').classList.remove('hidden');
     document.getElementById('displayPhone').innerText = phone;
     
@@ -419,7 +416,7 @@ function startMomoPendingOverlay(reference, phone, instructions) {
         if (secondsLeft <= 0) {
             clearInterval(countdownInterval);
             clearInterval(pollingInterval);
-            alert('Payment window expired. Please try again.');
+            alert('Payment window expired. Please try submitting again.');
             cancelPendingState();
         }
     }, 1000);
@@ -432,7 +429,7 @@ function startMomoPendingOverlay(reference, phone, instructions) {
             if (vData.success && (vData.status === 'successful' || vData.status === 'success')) {
                 clearInterval(countdownInterval);
                 clearInterval(pollingInterval);
-                showSuccessReceipt(reference, <?= $link['amount'] ?>);
+                showSuccessOverlay(reference, amount);
             }
         });
     }, 3000);
@@ -449,19 +446,19 @@ function cancelPendingState() {
     clearInterval(countdownInterval);
     clearInterval(pollingInterval);
     document.getElementById('momoPendingOverlay').classList.add('hidden');
-    document.getElementById('checkoutFormContainer').classList.remove('hidden');
+    document.getElementById('momoFormSection').classList.remove('hidden');
 
-    const btn = document.getElementById('payBtn');
+    const btn = document.getElementById('momoSubmitBtn');
     btn.disabled = false;
-    btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">lock</span> Pay GH₵ ' + parseFloat(<?= $link['amount'] ?>).toFixed(2);
+    btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">lock</span> Pay GH₵ ' + parseFloat(document.getElementById('momo_amount').value).toFixed(2) + ' Now';
 }
 
-function showSuccessReceipt(reference, amount) {
+function showSuccessOverlay(reference, amount) {
     document.getElementById('momoPendingOverlay').classList.add('hidden');
-    document.getElementById('checkoutFormContainer').classList.add('hidden');
-    document.getElementById('successContainer').classList.remove('hidden');
+    document.getElementById('momoFormSection').classList.add('hidden');
+    document.getElementById('momoSuccessOverlay').classList.remove('hidden');
 
-    document.getElementById('res_ref').innerText = reference;
-    document.getElementById('res_amt').innerText = 'GH₵ ' + parseFloat(amount).toFixed(2);
+    document.getElementById('resReference').innerText = reference;
+    document.getElementById('resAmount').innerText = 'GH₵ ' + parseFloat(amount).toFixed(2);
 }
 </script>

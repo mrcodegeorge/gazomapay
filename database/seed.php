@@ -25,7 +25,7 @@ try {
     $passHash = password_hash('password123', PASSWORD_BCRYPT);
     
     // Merchant: Gazoma Tech
-    $stmt = $pdo->prepare("INSERT INTO merchants (uuid, merchant_id, name, legal_name, trading_name, business_registration_number, business_type, email, phone, logo, country, currency, timezone, address, environment, available_balance, pending_balance, settled_balance, kyc_status, account_status, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO merchants (uuid, merchant_id, name, legal_name, trading_name, business_registration_number, business_type, email, phone, logo, country, currency, timezone, address, environment, available_balance, pending_balance, settled_balance, onboarding_completed, onboarding_step, kyc_status, account_status, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 4, ?, ?, ?)");
     $stmt->execute([
         'mch_892374829374',
         'GZM_123456',
@@ -194,6 +194,51 @@ try {
 
     $stmtWhLog = $pdo->prepare("INSERT INTO webhook_logs (merchant_id, endpoint_id, event_id, event_type, payload, signature, response_code, response_body, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $stmtWhLog->execute([$merchantId, $whId, 'evt_9018237465', 'payment.success', json_encode(['event' => 'payment.success', 'data' => ['reference' => 'GZM_00012345', 'amount' => 200.00]]), 't=1723639200,v1=9f8a7b6c5d4e3f2a', 200, '{"received":true}', 'delivered']);
+
+    // Seed Sample Disputes
+    $stmtDsp = $pdo->prepare("INSERT INTO disputes (dispute_code, merchant_id, transaction_id, customer_id, amount, reason, evidence_text, status, due_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    
+    $stmtTxFetch = $pdo->prepare("SELECT id, reference, amount, customer_id FROM transactions WHERE reference IN ('GZM_00012345', 'GZM_00012341', 'GZM_00012339')");
+    $stmtTxFetch->execute();
+    $txs = $stmtTxFetch->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!empty($txs)) {
+        // Dispute 1: Needs Response
+        $stmtDsp->execute(['DSP_89201923', $merchantId, $txs[0]['id'], $txs[0]['customer_id'], 200.00, 'unauthorized_charge', null, 'needs_response', date('Y-m-d', strtotime('+7 days')), '2024-06-01 09:00:00']);
+
+        // Dispute 2: Under Review
+        if (isset($txs[1])) {
+            $stmtDsp->execute(['DSP_89201924', $merchantId, $txs[1]['id'], $txs[1]['customer_id'], 670.00, 'product_not_received', 'Item was delivered via Waybill #WB-9920. Customer signed receipt.', 'under_review', date('Y-m-d', strtotime('+12 days')), '2024-05-29 14:00:00']);
+        }
+
+        // Dispute 3: Won
+        if (isset($txs[2])) {
+            $stmtDsp->execute(['DSP_89201925', $merchantId, $txs[2]['id'], $txs[2]['customer_id'], 410.00, 'fraudulent', 'Verified 3DS OTP transaction log provided to issuing bank.', 'won', '2024-05-20', '2024-05-18 11:30:00']);
+        }
+    }
+
+    // Seed Subscription Plans
+    $stmtSubPlan = $pdo->prepare("INSERT INTO subscription_plans (merchant_id, name, description, amount, currency, billing_interval, trial_days, status) VALUES (?, ?, ?, ?, 'GHS', ?, ?, 'active')");
+    $stmtSubPlan->execute([$merchantId, 'Starter Monthly Tier', 'Starter subscription plan for small businesses', 99.00, 'monthly', 7]);
+    $plan1Id = $pdo->lastInsertId();
+
+    $stmtSubPlan->execute([$merchantId, 'Pro Business Plan', 'Full feature access with high volume discounts', 299.00, 'monthly', 14]);
+    $plan2Id = $pdo->lastInsertId();
+
+    $stmtSubPlan->execute([$merchantId, 'Enterprise Annual Tier', 'Annual enterprise SLA agreement & priority support', 2999.00, 'yearly', 30]);
+    $plan3Id = $pdo->lastInsertId();
+
+    // Seed Active Subscriptions
+    $stmtSub = $pdo->prepare("INSERT INTO subscriptions (merchant_id, customer_id, plan_id, status, next_billing_date) VALUES (?, ?, ?, ?, ?)");
+    if (!empty($customerIds['Ama Serwaa'])) {
+        $stmtSub->execute([$merchantId, $customerIds['Ama Serwaa'], $plan1Id, 'active', date('Y-m-d', strtotime('+25 days'))]);
+    }
+    if (!empty($customerIds['Kofi Mensah'])) {
+        $stmtSub->execute([$merchantId, $customerIds['Kofi Mensah'], $plan2Id, 'active', date('Y-m-d', strtotime('+14 days'))]);
+    }
+    if (!empty($customerIds['Comfort Stores'])) {
+        $stmtSub->execute([$merchantId, $customerIds['Comfort Stores'], $plan3Id, 'active', date('Y-m-d', strtotime('+310 days'))]);
+    }
 
     echo "=== Gazoma Pay Hardened Database Seeded Successfully! ===\n";
 
