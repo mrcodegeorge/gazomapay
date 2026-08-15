@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($pageTitle ?? 'Super Admin Platform') ?> | Gazoma Pay</title>
+    <title><?= htmlspecialchars($pageTitle ?? 'Super Admin Console') ?> | Gazoma Pay</title>
 
     <!-- Tailwind CSS CDN & Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,15 +16,15 @@
         .font-data-mono { font-family: 'JetBrains Mono', monospace; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
+<body class="bg-surface-container-lowest text-on-surface antialiased min-h-screen">
 
-    <!-- Super Admin Dedicated Sidebar -->
+    <!-- Standalone Admin Sidebar -->
     <?php require __DIR__ . '/../components/admin_sidebar.php'; ?>
 
-    <!-- Main Admin Layout Wrapper -->
+    <!-- Main Standalone Layout Wrapper -->
     <div class="pl-[260px] flex flex-col min-h-screen">
         
-        <!-- Super Admin Dedicated Header -->
+        <!-- Standalone Admin Header -->
         <?php require __DIR__ . '/../components/admin_header.php'; ?>
 
         <!-- Content Area -->

@@ -82,7 +82,7 @@ class AdminController {
             'disputes' => $disputes,
             'platformSettings' => $platformSettings,
             'systemLogs' => $systemLogs
-        ], 'app');
+        ], 'admin');
     }
 
     public function approveKyc(string $id): void {
