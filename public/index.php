@@ -172,12 +172,16 @@ if ($uri === '/') {
 // Settings
 } elseif ($uri === '/settings' || $uri === '/settings/profile') {
     (new SettingsController())->index();
-} elseif ($uri === '/settings/update-profile' && $method === 'POST') {
+} elseif (($uri === '/settings/update-profile' || $uri === '/settings/profile') && $method === 'POST') {
     (new SettingsController())->updateProfile();
+} elseif ($uri === '/settings/team/add' && $method === 'POST') {
+    (new SettingsController())->addTeamMember();
 } elseif ($uri === '/settings/toggle-mode' && $method === 'POST') {
     (new SettingsController())->toggleEnvironment();
-} elseif ($uri === '/settings/update-password' && $method === 'POST') {
+} elseif (($uri === '/settings/update-password' || $uri === '/settings/password') && $method === 'POST') {
     (new SettingsController())->updatePassword();
+} elseif ($uri === '/settings/rotate-keys' && $method === 'POST') {
+    (new SettingsController())->rotateApiKeys();
 
 // Super Admin Platform Dashboard & Standalone Pages
 } elseif ($uri === '/admin' || $uri === '/admin/overview') {
