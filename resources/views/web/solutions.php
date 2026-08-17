@@ -1,28 +1,45 @@
-<section class="hero-section">
-  <h1 class="hero-title">Payment Solutions for Every Business Model</h1>
-  <p class="hero-subtitle">Whether you sell online, bill recurring subscriptions, send invoices, or build a custom API integration, Gazoma Pay has you covered.</p>
+<section class="py-20 px-4 sm:px-8 glow-bg text-center">
+  <div class="max-w-4xl mx-auto space-y-4">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-xs font-mono text-brand-300">
+      <span>Enterprise Payment Products</span>
+    </div>
+    <h1 class="font-display font-extrabold text-4xl sm:text-5xl text-white tracking-tight">Payment Solutions for Every Business Model</h1>
+    <p class="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto">Accept Mobile Money, Cards, and Direct Bank Transfers with instant ledger accounting and automated settlement payouts.</p>
+  </div>
 </section>
 
-<section style="padding: 64px 48px; max-width: 1100px; margin: 0 auto;">
-  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px;">
-    <div class="card" style="padding: 32px;">
-      <h3 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Payment Links</h3>
-      <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Share customized links on social media or messaging apps to collect payments instantly in GHS.</p>
+<section class="py-16 px-4 sm:px-8 max-w-7xl mx-auto">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="glow-card p-8 rounded-3xl space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/30 text-brand-400 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">link</span>
+      </div>
+      <h3 class="font-display font-bold text-2xl text-white">Smart Payment Links</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Share customized links on WhatsApp, Instagram, or email to collect instant Mobile Money and Card payments without writing code.</p>
     </div>
 
-    <div class="card" style="padding: 32px;">
-      <h3 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Invoicing & PDF Receipts</h3>
-      <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Send professional itemized invoices to clients with automatic tracking and PDF invoice generation.</p>
+    <div class="glow-card p-8 rounded-3xl space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-accent-500/10 border border-accent-500/30 text-accent-400 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">receipt_long</span>
+      </div>
+      <h3 class="font-display font-bold text-2xl text-white">Invoicing &amp; PDF Receipts</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Send itemized digital invoices to clients with real-time status tracking, automated payment reconciliation, and downloadable PDF receipts.</p>
     </div>
 
-    <div class="card" style="padding: 32px;">
-      <h3 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Subscriptions & Billing</h3>
-      <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Automate recurring subscription plans (daily, weekly, monthly, yearly) for SaaS and memberships.</p>
+    <div class="glow-card p-8 rounded-3xl space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">update</span>
+      </div>
+      <h3 class="font-display font-bold text-2xl text-white">Subscriptions &amp; Recurring Billing</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Automate recurring membership plans (daily, weekly, monthly, yearly) for SaaS products, educational services, and digital subscriptions.</p>
     </div>
 
-    <div class="card" style="padding: 32px;">
-      <h3 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Automated Payout Settlements</h3>
-      <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Receive daily automated payouts directly to your GCB, Stanbic, or mobile money account.</p>
+    <div class="glow-card p-8 rounded-3xl space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">account_balance_wallet</span>
+      </div>
+      <h3 class="font-display font-bold text-2xl text-white">Automated Settlement Payouts</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Receive automated daily payouts directly into your GCB, Stanbic, Ecobank, or Mobile Money account with zero manual intervention.</p>
     </div>
   </div>
 </section>

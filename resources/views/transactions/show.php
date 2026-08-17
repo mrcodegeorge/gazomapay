@@ -44,9 +44,23 @@
         </div>
 
         <div>
-            <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Payment Details</div>
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Payment Channel &amp; Ledger Details</div>
             <div style="margin-top: 8px; font-size: 14px;">
+                <?php 
+                    $meta = json_decode($tx['metadata'] ?? '{}', true) ?: [];
+                    $isCard = ($tx['payment_method'] === 'card');
+                    $cardData = $meta['card'] ?? [];
+                    $momoData = $meta['mobile_money'] ?? [];
+                ?>
                 <div><span style="color: var(--text-muted);">Method:</span> <strong><?= strtoupper($tx['payment_method']) ?></strong></div>
+                <?php if ($isCard): ?>
+                    <div><span style="color: var(--text-muted);">Card Brand:</span> <strong><?= htmlspecialchars($cardData['brand'] ?? 'Visa') ?></strong></div>
+                    <div><span style="color: var(--text-muted);">Masked Card:</span> <code style="font-size: 12px; font-weight: bold;"><?= htmlspecialchars($cardData['masked_card'] ?? '**** **** **** 9010') ?></code></div>
+                    <div><span style="color: var(--text-muted);">3D Secure:</span> <span style="font-size: 11px; font-weight: bold; color: #16a34a; background: #dcfce7; padding: 2px 8px; border-radius: 99px;"><?= strtoupper($cardData['three_d_secure'] ?? 'PASSED') ?></span></div>
+                <?php else: ?>
+                    <div><span style="color: var(--text-muted);">Network:</span> <strong><?= strtoupper($momoData['provider'] ?? 'MTN Ghana') ?></strong></div>
+                    <div><span style="color: var(--text-muted);">Handset Phone:</span> <code><?= htmlspecialchars($tx['customer_phone'] ?? $momoData['phone'] ?? 'N/A') ?></code></div>
+                <?php endif; ?>
                 <div><span style="color: var(--text-muted);">Provider:</span> <strong><?= htmlspecialchars($tx['provider']) ?></strong></div>
                 <div><span style="color: var(--text-muted);">IP Address:</span> <code><?= htmlspecialchars($tx['ip_address'] ?? '127.0.0.1') ?></code></div>
             </div>

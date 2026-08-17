@@ -844,3 +844,96 @@ table.data-table tr:hover td {
     padding: 20px 16px;
   }
 }
+
+/* ==================================================== */
+/* GAZOMA PAY LANDING PAGE STANDALONE CSS SYSTEM        */
+/* ==================================================== */
+
+.dark-web-body {
+  background-color: #030712;
+  color: #f3f4f6;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.glass-nav-bar {
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glow-mesh-bg {
+  background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.22) 0%, rgba(14, 165, 233, 0.12) 45%, rgba(3, 7, 18, 0) 75%), #030712;
+}
+
+.glow-card-box {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-card-box:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.25);
+  transform: translateY(-2px);
+}
+
+.btn-brand-glow {
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.35);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.btn-brand-glow:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%);
+  box-shadow: 0 6px 28px rgba(79, 70, 229, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-outline-dark {
+  background: rgba(15, 23, 42, 0.8);
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.btn-outline-dark:hover {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff !important;
+}
+
+/* Landing Page Layout Grids */
+.hero-wrapper {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 64px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+@media (max-width: 992px) {
+  .hero-wrapper {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+}
+

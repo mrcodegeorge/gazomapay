@@ -213,6 +213,15 @@ if ($uri === '/') {
     (new PaystackController())->chargeMomo();
 } elseif (preg_match('#^/api/v1/momo/verify/([0-9a-zA-Z_]+)$#', $uri, $m)) {
     (new PaystackController())->verifyTransaction($m[1]);
+} elseif ($uri === '/api/v1/momo/simulate-approval' && $method === 'POST') {
+    (new PaystackController())->simulateMoMoApproval();
+} elseif ($uri === '/api/v1/card/charge' && $method === 'POST') {
+    (new ApiController())->chargeCard();
+} elseif ($uri === '/api/v1/card/verify-3ds' && $method === 'POST') {
+    $gateway = new SandboxPaymentGateway();
+    $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+    $res = $gateway->verify3DsOtp($input['reference'] ?? '', $input['otp'] ?? '');
+    Response::json($res);
 } elseif ($uri === '/api/v1/payments' && $method === 'POST') {
     (new ApiController())->createPayment();
 } elseif (preg_match('#^/api/v1/payments/([0-9a-zA-Z_]+)/refund$#', $uri, $m) && $method === 'POST') {

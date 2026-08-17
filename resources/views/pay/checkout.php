@@ -210,7 +210,7 @@
                 </div>
             </div>
 
-            <!-- Pending Overlay & 90s Countdown for Mobile Money -->
+                <!-- Pending Overlay & 90s Countdown for Mobile Money -->
             <div class="p-8 text-center hidden" id="momoPendingOverlay">
                 <div class="w-20 h-20 rounded-full bg-amber-50 border-4 border-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-6 shadow-inner relative">
                     <span class="material-symbols-outlined text-[40px] animate-spin">sync</span>
@@ -219,9 +219,15 @@
                 <h3 class="font-headline-lg text-2xl font-bold text-slate-900 mb-2">Mobile Money Prompt Sent</h3>
                 <p class="font-body-sm text-sm text-slate-500 mb-6 max-w-sm mx-auto">An STK approval push has been sent directly to your phone handset.</p>
 
-                <div class="p-4 bg-amber-50 border border-amber-200/80 rounded-2xl mb-6 text-amber-900 font-body-sm text-sm font-bold shadow-sm">
+                <div class="p-4 bg-amber-50 border border-amber-200/80 rounded-2xl mb-4 text-amber-900 font-body-sm text-sm font-bold shadow-sm">
                     Please check your phone and enter your Mobile Money PIN to approve.
                 </div>
+
+                <!-- Sandbox STK Simulation Button -->
+                <button type="button" onclick="simulateMomoApprovalNow()" class="w-full mb-6 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-body-sm text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">verified</span>
+                    <span>⚡ Simulate STK PIN Approval (Sandbox)</span>
+                </button>
 
                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-6">
                     <div class="font-label-caps text-xs text-slate-500 uppercase tracking-widest mb-1 font-bold">Time Remaining to Approve</div>
@@ -234,6 +240,47 @@
                 <button type="button" onclick="cancelPendingState()" class="w-full py-3 bg-slate-100 border border-slate-200 text-slate-700 font-body-sm text-xs font-bold rounded-xl hover:bg-slate-200 transition-colors">
                     Cancel &amp; Return
                 </button>
+            </div>
+
+            <!-- 3D Secure Card OTP Modal Container -->
+            <div class="p-8 text-center hidden" id="threeDsModalContainer">
+                <div class="w-16 h-16 rounded-2xl bg-blue-50 border-2 border-blue-200 text-blue-600 flex items-center justify-center mx-auto mb-5 shadow-sm">
+                    <span class="material-symbols-outlined text-[36px]">shield_person</span>
+                </div>
+
+                <h3 class="font-headline-lg text-2xl font-bold text-slate-900 mb-1">3D Secure Verification</h3>
+                <p class="font-body-sm text-xs text-slate-500 mb-6">Your issuing bank requires One-Time Password (OTP) authorization to complete this card charge.</p>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6 text-left space-y-3 font-body-sm text-xs">
+                    <div class="flex justify-between items-center text-slate-600">
+                        <span>Card Brand</span>
+                        <span class="font-bold text-slate-900" id="threeDsCardBrand">VISA</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-600">
+                        <span>Card Number</span>
+                        <span class="font-data-mono font-bold text-slate-900" id="threeDsMaskedCard">**** **** **** 9010</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-600 pt-2 border-t border-slate-200">
+                        <span>Sandbox Test OTP</span>
+                        <span class="font-data-mono font-extrabold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">123456</span>
+                    </div>
+                </div>
+
+                <form onsubmit="submit3DsOtp(event)" class="space-y-4">
+                    <div>
+                        <label class="block font-body-sm text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider text-left">Enter 6-Digit OTP</label>
+                        <input type="text" id="threeDsOtpInput" maxlength="6" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-data-mono text-2xl font-black text-center text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all tracking-widest" placeholder="123456" value="123456" required>
+                    </div>
+
+                    <button type="submit" id="threeDsSubmitBtn" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-body-sm font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/20">
+                        <span class="material-symbols-outlined text-[18px]">verified_user</span>
+                        <span>Authorize Card Payment</span>
+                    </button>
+
+                    <button type="button" onclick="cancelPendingState()" class="w-full py-2.5 bg-transparent text-slate-500 font-body-sm text-xs font-bold rounded-xl hover:text-slate-800 transition-colors">
+                        Cancel Transaction
+                    </button>
+                </form>
             </div>
 
             <!-- Success Confirmation Screen -->
@@ -272,6 +319,7 @@
 <script>
 let countdownInterval = null;
 let pollingInterval = null;
+let activePendingReference = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     const phoneInput = document.getElementById('cust_phone');
@@ -281,7 +329,42 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         autoDetectNetwork(phoneInput.value);
     }
+
+    const cardNumInput = document.getElementById('card_number');
+    if (cardNumInput) {
+        cardNumInput.addEventListener('input', function() {
+            autoDetectCardBrand(this.value);
+        });
+    }
+
+    const cardExpInput = document.getElementById('card_expiry');
+    if (cardExpInput) {
+        cardExpInput.addEventListener('input', function(e) {
+            let val = this.value.replace(/[^0-9]/g, '');
+            if (val.length >= 2) {
+                this.value = val.substring(0, 2) + '/' + val.substring(2, 4);
+            } else {
+                this.value = val;
+            }
+        });
+    }
 });
+
+function autoDetectCardBrand(cardNum) {
+    let clean = cardNum.replace(/[^0-9]/g, '');
+    let brand = 'VISA / MC';
+    if (clean.startsWith('4')) {
+        brand = 'VISA';
+    } else if (clean.startsWith('51') || clean.startsWith('52') || clean.startsWith('53') || clean.startsWith('54') || clean.startsWith('55')) {
+        brand = 'MASTERCARD';
+    } else if (clean.startsWith('34') || clean.startsWith('37')) {
+        brand = 'AMEX';
+    }
+    const badge = document.querySelector('#cardFields span.absolute');
+    if (badge) {
+        badge.innerText = brand;
+    }
+}
 
 function autoDetectNetwork(phoneVal) {
     let clean = phoneVal.replace(/[^0-9]/g, '');
@@ -370,6 +453,13 @@ function handleSandboxPayment(e, token) {
     const selectedMethod = document.querySelector('input[name="pay_method"]:checked').value;
     formData.append('payment_method', selectedMethod);
 
+    if (selectedMethod === 'card') {
+        formData.append('card_number', document.getElementById('card_number').value);
+        formData.append('card_expiry', document.getElementById('card_expiry').value);
+        formData.append('card_cvc', document.getElementById('card_cvc').value);
+        formData.append('require_3ds', '1');
+    }
+
     const providerSelect = document.getElementById('momo_provider_select');
     const provider = providerSelect ? providerSelect.value : 'mtn';
     formData.append('provider', provider);
@@ -381,7 +471,10 @@ function handleSandboxPayment(e, token) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            if (data.status === 'pending' || selectedMethod === 'mobile_money') {
+            activePendingReference = data.reference;
+            if (data.requires_3ds || data.status === 'pending_3ds') {
+                show3DsModal(data.reference, data.card_brand || 'VISA', data.masked_card || '**** **** **** 9010');
+            } else if (data.status === 'pending' || selectedMethod === 'mobile_money') {
                 startMomoPendingOverlay(data.reference, document.getElementById('cust_phone').value, data.instructions);
             } else {
                 showSuccessReceipt(data.reference, data.amount);
@@ -396,6 +489,68 @@ function handleSandboxPayment(e, token) {
         alert('Error processing payment.');
         btn.disabled = false;
         btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">lock</span> Pay GH₵ ' + parseFloat(<?= $link['amount'] ?>).toFixed(2);
+    });
+}
+
+function show3DsModal(reference, brand, maskedCard) {
+    document.getElementById('checkoutFormContainer').classList.add('hidden');
+    document.getElementById('momoPendingOverlay').classList.add('hidden');
+    document.getElementById('threeDsModalContainer').classList.remove('hidden');
+    
+    document.getElementById('threeDsCardBrand').innerText = brand;
+    document.getElementById('threeDsMaskedCard').innerText = maskedCard;
+}
+
+function submit3DsOtp(e) {
+    e.preventDefault();
+    const otp = document.getElementById('threeDsOtpInput').value;
+    const btn = document.getElementById('threeDsSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">sync</span> Verifying OTP...';
+
+    fetch('/api/v1/card/verify-3ds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            reference: activePendingReference,
+            otp: otp
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('threeDsModalContainer').classList.add('hidden');
+            showSuccessReceipt(activePendingReference, <?= $link['amount'] ?>);
+        } else {
+            alert('3DS Error: ' + (data.message || 'OTP verification failed.'));
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">verified_user</span> Authorize Card Payment';
+        }
+    })
+    .catch(err => {
+        alert('Verification failed.');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">verified_user</span> Authorize Card Payment';
+    });
+}
+
+function simulateMomoApprovalNow() {
+    if (!activePendingReference) return;
+    
+    fetch('/api/v1/momo/simulate-approval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: activePendingReference })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            clearInterval(countdownInterval);
+            clearInterval(pollingInterval);
+            showSuccessReceipt(activePendingReference, <?= $link['amount'] ?>);
+        } else {
+            alert('Simulation Error: ' + (data.message || 'Failed to simulate approval.'));
+        }
     });
 }
 
@@ -449,6 +604,7 @@ function cancelPendingState() {
     clearInterval(countdownInterval);
     clearInterval(pollingInterval);
     document.getElementById('momoPendingOverlay').classList.add('hidden');
+    document.getElementById('threeDsModalContainer').classList.add('hidden');
     document.getElementById('checkoutFormContainer').classList.remove('hidden');
 
     const btn = document.getElementById('payBtn');
@@ -458,6 +614,7 @@ function cancelPendingState() {
 
 function showSuccessReceipt(reference, amount) {
     document.getElementById('momoPendingOverlay').classList.add('hidden');
+    document.getElementById('threeDsModalContainer').classList.add('hidden');
     document.getElementById('checkoutFormContainer').classList.add('hidden');
     document.getElementById('successContainer').classList.remove('hidden');
 

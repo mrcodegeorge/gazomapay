@@ -1,28 +1,53 @@
-<section class="hero-section">
-  <h1 class="hero-title">Bank-Grade Security & Financial Integrity</h1>
-  <p class="hero-subtitle">Gazoma Pay is engineered from the ground up with immutable accounting ledgers, strict cryptographic signatures, and zero-trust data boundaries.</p>
+<section class="py-20 px-4 sm:px-8 glow-bg text-center">
+  <div class="max-w-4xl mx-auto space-y-4">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-xs font-mono text-brand-300">
+      <span>Security &amp; Integrity</span>
+    </div>
+    <h1 class="font-display font-extrabold text-4xl sm:text-5xl text-white tracking-tight">Bank-Grade Financial Integrity</h1>
+    <p class="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto">Gazoma Pay is engineered with double-entry accounting integrity, strict multi-tenant data isolation, and 256-bit encryption.</p>
+  </div>
 </section>
 
-<section style="padding: 64px 48px; max-width: 1000px; margin: 0 auto;">
-  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; margin-bottom: 48px;">
-    <div class="card" style="padding: 28px;">
-      <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">🔒 Double-Entry Ledger</h3>
-      <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Every financial operation creates immutable debit and credit entries. Historical ledger records can never be mutated or erased.</p>
+<section class="py-16 px-4 sm:px-8 max-w-6xl mx-auto space-y-12">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="glow-card p-8 rounded-3xl space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">account_balance</span>
+      </div>
+      <h3 class="font-display font-bold text-2xl text-white">Immutable Double-Entry Ledger</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">
+        Financial balances are calculated directly from immutable ledger transaction entries. Every customer deposit, platform fee debit, and bank disbursement is recorded as an immutable posting.
+      </p>
     </div>
 
-    <div class="card" style="padding: 28px;">
-      <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">⚡ Idempotency Protection</h3>
-      <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Prevents duplicate charges or settlement payouts when clients retry requests during network timeouts using unique <code>Idempotency-Key</code> headers.</p>
+    <div class="glow-card p-8 rounded-3xl space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/30 text-brand-400 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">lock</span>
+      </div>
+      <h3 class="font-display font-bold text-2xl text-white">256-Bit SSL &amp; PCI-DSS Ready</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">
+        All network transport is encrypted via TLS 1.3. Card data is processed securely through tokenized gateway endpoints with 3D Secure 2.0 OTP authentication.
+      </p>
     </div>
 
-    <div class="card" style="padding: 28px;">
-      <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">🛡️ Multi-Tenant Scoping</h3>
-      <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Strict server-side authorization scoping ensures Merchant A can never view or manipulate Merchant B's transactions or customers.</p>
+    <div class="glow-card p-8 rounded-3xl space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-accent-500/10 border border-accent-500/30 text-accent-400 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">shield</span>
+      </div>
+      <h3 class="font-display font-bold text-2xl text-white">Multi-Tenant Merchant Isolation</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">
+        Every database query is strictly scoped to the authenticated merchant ID (`WHERE merchant_id = ?`). Customer records, keys, and balances are partitioned securely.
+      </p>
     </div>
 
-    <div class="card" style="padding: 28px;">
-      <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">🔑 HMAC Signed Webhooks</h3>
-      <p style="color: #64748b; font-size: 14px; line-height: 1.6;">All webhook events are cryptographically signed using HMAC SHA256, allowing merchants to verify event origin and payload integrity.</p>
+    <div class="glow-card p-8 rounded-3xl space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[28px]">history</span>
+      </div>
+      <h3 class="font-display font-bold text-2xl text-white">Audit Trail Logging</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">
+        Actions across merchant dashboards and platform admin controls are logged in `audit_logs` with timestamp, IP address, user agent, and action metadata.
+      </p>
     </div>
   </div>
 </section>

@@ -3,154 +3,138 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= htmlspecialchars($title ?? 'Gazoma Pay') ?></title>
+  <title><?= htmlspecialchars($title ?? 'Gazoma Pay — Next-Gen Payment Infrastructure & Financial Ledger Engine') ?></title>
+  <meta name="description" content="Gazoma Pay is Africa's modern payment infrastructure platform providing instant Mobile Money, Card payments, double-entry financial ledger accounting, and developer APIs.">
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/app.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/assets/css/app.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="/assets/css/landing.css?v=<?= time() ?>">
+
   <style>
-    .web-header {
-      background: #ffffff;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 18px 48px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .web-nav {
-      display: flex;
-      gap: 32px;
-    }
-    .web-nav a {
-      color: #475569;
-      font-weight: 600;
-      font-size: 15px;
-      text-decoration: none;
-    }
-    .web-nav a:hover {
-      color: #2563eb;
-    }
-    .web-footer {
-      background: #0b1220;
-      color: #94a3b8;
-      padding: 64px 48px 32px;
-    }
-    .footer-grid {
-      display: grid;
-      grid-template-columns: 2fr repeat(3, 1fr);
-      gap: 48px;
-      margin-bottom: 48px;
-    }
-    .footer-col h4 {
-      color: #fff;
-      margin-bottom: 16px;
-      font-size: 15px;
-    }
-    .footer-col ul {
-      list-style: none;
-    }
-    .footer-col li {
-      margin-bottom: 10px;
-    }
-    .footer-col a {
-      color: #94a3b8;
-      text-decoration: none;
-    }
-    .footer-col a:hover {
-      color: #fff;
-    }
-    .hero-section {
-      padding: 96px 48px 80px;
-      background: linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
-      text-align: center;
-    }
-    .hero-title {
-      font-size: 48px;
-      font-weight: 800;
-      color: #0f172a;
-      letter-spacing: -1.2px;
-      line-height: 1.15;
-      max-width: 800px;
-      margin: 0 auto 20px;
-    }
-    .hero-subtitle {
-      font-size: 18px;
-      color: #475569;
-      max-width: 620px;
-      margin: 0 auto 36px;
-    }
-    .hero-ctas {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
+    /* Critical Inline Fallback Styles to guarantee instant render regardless of CDN/Cache state */
+    body.dark-web-body {
+      background-color: #030712 !important;
+      color: #f3f4f6 !important;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+      margin: 0;
+      padding: 0;
     }
   </style>
 </head>
-<body>
-  <header class="web-header">
-    <a href="/" class="brand-logo" style="color: #0f172a;">
-      <div class="brand-icon">G</div>
-      <span>Gazoma Pay</span>
-    </a>
-    <nav class="web-nav">
-      <a href="/solutions">Solutions</a>
-      <a href="/pricing">Pricing</a>
-      <a href="/developers">Developers</a>
-      <a href="/security">Security</a>
-      <a href="/about">About</a>
-    </nav>
-    <div style="display: flex; gap: 12px;">
-      <a href="/login" class="btn btn-outline">Log In</a>
-      <a href="/register" class="btn btn-primary">Get Started</a>
+<body class="dark-web-body">
+  
+  <!-- Navigation Header -->
+  <header class="landing-header">
+    <div class="landing-header-container">
+      
+      <!-- Brand Logo -->
+      <a href="/" class="landing-brand">
+        <div class="landing-brand-icon">G</div>
+        <div class="landing-brand-text">
+          <span class="landing-brand-name">Gazoma<span>Pay</span></span>
+          <span class="landing-brand-tag">Infrastructure</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="landing-nav">
+        <a href="/solutions" class="landing-nav-link">Solutions</a>
+        <a href="/pricing" class="landing-nav-link">Pricing</a>
+        <a href="/developers" class="landing-nav-link">
+          <span>Developers</span>
+          <span class="landing-badge-pill">API v1</span>
+        </a>
+        <a href="/security" class="landing-nav-link">Security &amp; Ledger</a>
+        <a href="/about" class="landing-nav-link">About Us</a>
+      </nav>
+
+      <!-- Header CTAs -->
+      <div class="landing-actions">
+        <a href="/login" class="btn-landing-login">Sign In</a>
+        <a href="/register" class="btn-landing-primary">
+          <span>Get Started</span>
+          <span style="font-weight: 900; font-size: 16px;">&rarr;</span>
+        </a>
+      </div>
+
     </div>
   </header>
 
-  <main>
+  <!-- Main Content Area -->
+  <main class="landing-main">
     <?= $content ?>
   </main>
 
-  <footer class="web-footer">
-    <div class="footer-grid">
-      <div>
-        <div class="brand-logo" style="color: #fff; margin-bottom: 16px;">
-          <div class="brand-icon">G</div>
-          <span>Gazoma Pay</span>
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div class="footer-container">
+      <div class="footer-top-grid">
+        
+        <!-- Brand & Description -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <a href="/" class="landing-brand">
+            <div class="landing-brand-icon" style="width: 32px; height: 32px; font-size: 16px;">G</div>
+            <span class="landing-brand-name" style="font-size: 18px;">GazomaPay</span>
+          </a>
+          <p style="font-size: 14px; color: var(--text-secondary); max-width: 360px; line-height: 1.6;">
+            Production-grade financial engine offering instant Mobile Money collections, card processing, immutable double-entry ledger accounting, and developer APIs across West Africa.
+          </p>
+
+          <div style="display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--accent-emerald); background: #060d1f; border: 1px solid var(--border-subtle); padding: 6px 14px; border-radius: 9999px; width: fit-content;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-emerald); box-shadow: 0 0 10px var(--accent-emerald);"></span>
+            <span>All Systems Operational (99.99% Uptime)</span>
+          </div>
         </div>
-        <p style="font-size: 14px; line-height: 1.6;">Empowering digital businesses across Africa with modern payment infrastructure, smart links, and automated settlements.</p>
+
+        <!-- Products -->
+        <div>
+          <h4 class="footer-col-title">Products</h4>
+          <ul class="footer-links-list">
+            <li><a href="/solutions">Payment Links</a></li>
+            <li><a href="/solutions">Mobile Money STK Push</a></li>
+            <li><a href="/solutions">Card Checkout (3DS 2.0)</a></li>
+            <li><a href="/solutions">Subscription Billing</a></li>
+            <li><a href="/solutions">Invoicing &amp; PDF Receipts</a></li>
+          </ul>
+        </div>
+
+        <!-- Developers -->
+        <div>
+          <h4 class="footer-col-title">Developers</h4>
+          <ul class="footer-links-list">
+            <li><a href="/developers">API Documentation</a></li>
+            <li><a href="/developers">HMAC Webhooks</a></li>
+            <li><a href="/developers">Idempotency Guide</a></li>
+            <li><a href="/developers">Sandbox SDK &amp; Postman</a></li>
+          </ul>
+        </div>
+
+        <!-- Security & Legal -->
+        <div>
+          <h4 class="footer-col-title">Security &amp; Legal</h4>
+          <ul class="footer-links-list">
+            <li><a href="/security">Double-Entry Ledger</a></li>
+            <li><a href="/security">PCI-DSS Ready Compliance</a></li>
+            <li><a href="/about">About Gazoma Pay</a></li>
+            <li><a href="/contact">Contact Support</a></li>
+          </ul>
+        </div>
+
       </div>
-      <div class="footer-col">
-        <h4>Products</h4>
-        <ul>
-          <li><a href="/solutions">Payment Links</a></li>
-          <li><a href="/solutions">API Checkout</a></li>
-          <li><a href="/solutions">Invoicing</a></li>
-          <li><a href="/solutions">Subscriptions</a></li>
-        </ul>
+
+      <div class="footer-bottom-bar">
+        <p>&copy; <?= date('Y') ?> Gazoma Pay Limited. All rights reserved.</p>
+        <div style="display: flex; gap: 24px; font-family: var(--font-mono); font-size: 11px;">
+          <span>Ghana Fintech Infrastructure Sandbox v1.0</span>
+          <span>&bull;</span>
+          <span style="color: var(--text-secondary);">256-Bit SSL Encrypted</span>
+        </div>
       </div>
-      <div class="footer-col">
-        <h4>Developers</h4>
-        <ul>
-          <li><a href="/developers">API Reference</a></li>
-          <li><a href="/developers">Webhooks</a></li>
-          <li><a href="/developers">Sandbox SDK</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Company</h4>
-        <ul>
-          <li><a href="/about">About Us</a></li>
-          <li><a href="/security">Security & Compliance</a></li>
-          <li><a href="/contact">Contact Support</a></li>
-        </ul>
-      </div>
-    </div>
-    <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px; display: flex; justify-content: space-between; font-size: 13px;">
-      <p>&copy; <?= date('Y') ?> Gazoma Pay Limited. All rights reserved.</p>
-      <p>Ghana Payment Infrastructure Sandbox v1.0-beta</p>
     </div>
   </footer>
+
 </body>
 </html>

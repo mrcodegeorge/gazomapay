@@ -298,4 +298,94 @@ class PaystackController
 
         return 'mtn';
     }
+
+    /**
+     * Sandbox STK Push Approval Simulator
+     * Route: POST /api/v1/momo/simulate-approval
+     */
+    public function simulateMoMoApproval(): void
+    {
+        $inputRaw = file_get_contents('php://input');
+        $data = json_decode($inputRaw, true) ?: $_POST;
+
+        $reference = trim($data['reference'] ?? '');
+
+        if (empty($reference)) {
+            Response::json(['success' => false, 'message' => 'Transaction reference is required.'], 400);
+            return;
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("SELECT * FROM transactions WHERE reference = ? LIMIT 1");
+        $stmt->execute([$reference]);
+        $tx = $stmt->fetch();
+
+        if (!$tx) {
+            Response::json(['success' => false, 'message' => 'Transaction not found.'], 404);
+            return;
+        }
+
+        if ($tx['status'] === 'successful') {
+            Response::json([
+                'success' => true,
+                'status' => 'successful',
+                'reference' => $reference,
+                'message' => 'Transaction has already been approved and settled.'
+            ]);
+            return;
+        }
+
+        $pdo->beginTransaction();
+        try {
+            $merchantId = $tx['merchant_id'];
+            $amountGhs = (float)$tx['amount'];
+            $fee = (float)$tx['fee'];
+            $net = (float)$tx['net_amount'];
+            $customerId = $tx['customer_id'];
+
+            // Update Transaction Status
+            $upd = $pdo->prepare("UPDATE transactions SET status = 'successful', updated_at = NOW() WHERE id = ?");
+            $upd->execute([$tx['id']]);
+
+            // Record in Double-Entry Ledger
+            LedgerEngine::recordPayment($merchantId, $reference, $amountGhs, $fee, $net, 'Mobile Money STK PIN Approved (' . $reference . ')');
+
+            // Update Merchant Available Balance
+            $newAvailable = LedgerEngine::getAvailableBalance($merchantId);
+            $updMch = $pdo->prepare("UPDATE merchants SET available_balance = ? WHERE id = ?");
+            $updMch->execute([$newAvailable, $merchantId]);
+
+            // Update Customer Statistics
+            if ($customerId) {
+                $updCst = $pdo->prepare("UPDATE customers SET total_transactions = total_transactions + 1, total_spending = total_spending + ?, successful_payments = successful_payments + 1 WHERE id = ?");
+                $updCst->execute([$amountGhs, $customerId]);
+            }
+
+            $pdo->commit();
+
+            AuditLogger::log('momo.stk_approved', "Mobile Money STK PIN approved for transaction {$reference}");
+
+            WebhookDispatcher::dispatch($merchantId, 'payment.success', [
+                'event' => 'payment.success',
+                'event_id' => $tx['event_id'],
+                'transaction_id' => $tx['id'],
+                'reference' => $reference,
+                'amount' => $amountGhs,
+                'fee' => $fee,
+                'net_amount' => $net
+            ]);
+
+            Response::json([
+                'success' => true,
+                'status' => 'successful',
+                'reference' => $reference,
+                'amount' => $amountGhs,
+                'message' => 'Mobile Money STK PIN approved successfully in sandbox mode.'
+            ]);
+
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            Response::json(['success' => false, 'message' => 'Simulation failed: ' . $e->getMessage()], 500);
+        }
+    }
 }

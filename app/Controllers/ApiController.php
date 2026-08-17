@@ -272,4 +272,48 @@ class ApiController {
 
         self::respondSuccess(['settlements' => $settlements, 'count' => count($settlements)]);
     }
+
+    /**
+     * POST /api/v1/card/charge
+     */
+    public function chargeCard(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $input['merchant_id'] = $merchant['id'];
+        $input['payment_method'] = 'card';
+        
+        $gateway = new SandboxPaymentGateway();
+        $result = $gateway->charge($input);
+
+        if ($result['success']) {
+            self::respondSuccess($result);
+        } else {
+            self::respondError('CARD_CHARGE_FAILED', $result['message'], 400);
+        }
+    }
+
+    /**
+     * POST /api/v1/card/verify-3ds
+     */
+    public function verify3Ds(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $reference = trim($input['reference'] ?? '');
+        $otp = trim($input['otp'] ?? '');
+
+        if (!$reference || !$otp) {
+            self::respondError('INVALID_INPUT', 'Transaction reference and OTP are required.', 422);
+        }
+
+        $gateway = new SandboxPaymentGateway();
+        $result = $gateway->verify3DsOtp($reference, $otp);
+
+        if ($result['success']) {
+            self::respondSuccess($result);
+        } else {
+            self::respondError('3DS_VERIFICATION_FAILED', $result['message'], 400);
+        }
+    }
 }

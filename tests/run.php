@@ -34,6 +34,16 @@ assertTest('FeeEngine: 1.5% + GH₵0.50 calculation on 100 GHS', $calc['fee'] ==
 $calc2 = FeeEngine::calculate(1000.00);
 assertTest('FeeEngine: 1.5% + GH₵0.50 calculation on 1000 GHS', $calc2['fee'] === 15.50 && $calc2['net_amount'] === 984.50);
 
+// Card Brand Detection
+assertTest('SandboxPaymentGateway: Auto-detects Visa card brand (4000...)', SandboxPaymentGateway::detectCardBrand('4000123456789010') === 'Visa');
+assertTest('SandboxPaymentGateway: Auto-detects Mastercard brand (5100...)', SandboxPaymentGateway::detectCardBrand('5100123456789010') === 'Mastercard');
+
+// Mobile Money Network Detection
+require_once __DIR__ . '/../app/Controllers/PaystackController.php';
+assertTest('PaystackController: Auto-detects MTN MoMo network prefix (024...)', PaystackController::detectNetworkProvider('0241234567') === 'mtn');
+assertTest('PaystackController: Auto-detects Telecel Cash network prefix (020...)', PaystackController::detectNetworkProvider('0201234567') === 'vod');
+assertTest('PaystackController: Auto-detects AT Money network prefix (027...)', PaystackController::detectNetworkProvider('0271234567') === 'tigo');
+
 // Ledger Engine
 $testMchId = 1;
 $prevAvail = LedgerEngine::getAvailableBalance($testMchId);
