@@ -78,32 +78,53 @@
             
             <!-- Phase 3: Main Payment Form Container -->
             <div id="checkoutFormContainer">
-                <h3 class="font-headline-lg text-xl font-bold text-slate-900 mb-1">Select Payment Method</h3>
-                <p class="font-body-sm text-xs text-slate-500 mb-6">Complete your payment securely using Mobile Money or Card.</p>
+                <h2 class="font-headline-sm text-lg font-bold text-slate-900 mb-1">
+                    Select a <span class="text-primary font-semibold">payment</span> method
+                </h2>
+                <p class="font-body-sm text-xs text-slate-500 mb-5">Complete your payment securely using Mobile Money, Card, or Bank Transfer.</p>
 
                 <form id="paymentForm" onsubmit="handleSandboxPayment(event, '<?= $link['token'] ?>')">
                     
-                    <!-- Payment Method Tabs (MoMo, Card, Bank) -->
-                    <div class="mb-6">
-                        <div class="grid grid-cols-3 gap-2">
-                            <label class="pay-method-option flex flex-col items-center justify-center p-3 border-2 border-secondary bg-secondary/5 rounded-xl cursor-pointer transition-all hover:bg-secondary/10 text-center select-none" id="label_mobile_money">
-                                <input type="radio" name="pay_method" value="mobile_money" checked class="sr-only" onchange="selectPaymentMethod(this)">
-                                <span class="material-symbols-outlined text-secondary text-[22px] mb-1">smartphone</span>
-                                <span class="font-body-sm text-[11px] font-bold text-slate-800">MoMo</span>
-                            </label>
+                    <!-- Payment Methods List Layout -->
+                    <div aria-labelledby="payment-method-label" class="flex flex-col gap-2.5 mb-6" role="radiogroup">
+                        <!-- Mobile Money - Selected by default -->
+                        <label class="pay-method-option group relative flex items-center gap-4 p-3.5 border-2 border-primary bg-primary/5 rounded-xl cursor-pointer transition-all shadow-sm select-none" id="label_mobile_money">
+                            <input checked class="sr-only" name="pay_method" type="radio" value="mobile_money" onchange="selectPaymentMethod(this)">
+                            <div class="w-12 h-9 flex items-center justify-center bg-white rounded-lg border border-slate-200 shrink-0">
+                                <span class="material-symbols-outlined text-primary text-[22px]">smartphone</span>
+                            </div>
+                            <div class="flex flex-col flex-grow">
+                                <span class="font-body-md text-sm font-bold text-slate-900">Mobile Money</span>
+                                <span class="font-body-sm text-[11px] text-slate-500">MTN MoMo, Telecel Cash, AT Money</span>
+                            </div>
+                            <span class="material-symbols-outlined text-primary check-icon text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        </label>
 
-                            <label class="pay-method-option flex flex-col items-center justify-center p-3 border border-slate-200 rounded-xl cursor-pointer transition-all hover:bg-slate-50 text-center select-none" id="label_card">
-                                <input type="radio" name="pay_method" value="card" class="sr-only" onchange="selectPaymentMethod(this)">
-                                <span class="material-symbols-outlined text-slate-400 text-[22px] mb-1">credit_card</span>
-                                <span class="font-body-sm text-[11px] font-bold text-slate-800">Card</span>
-                            </label>
+                        <!-- Debit / Credit Card -->
+                        <label class="pay-method-option group relative flex items-center gap-4 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all bg-white select-none" id="label_card">
+                            <input class="sr-only" name="pay_method" type="radio" value="card" onchange="selectPaymentMethod(this)">
+                            <div class="w-12 h-9 flex items-center justify-center bg-white rounded-lg border border-slate-200 shrink-0">
+                                <span class="material-symbols-outlined text-slate-500 text-[22px]">credit_card</span>
+                            </div>
+                            <div class="flex flex-col flex-grow">
+                                <span class="font-body-md text-sm font-bold text-slate-900">Debit / Credit Card</span>
+                                <span class="font-body-sm text-[11px] text-slate-500">VISA, Mastercard, AMEX</span>
+                            </div>
+                            <span class="material-symbols-outlined text-primary check-icon text-[20px] hidden" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        </label>
 
-                            <label class="pay-method-option flex flex-col items-center justify-center p-3 border border-slate-200 rounded-xl cursor-pointer transition-all hover:bg-slate-50 text-center select-none" id="label_bank_transfer">
-                                <input type="radio" name="pay_method" value="bank_transfer" class="sr-only" onchange="selectPaymentMethod(this)">
-                                <span class="material-symbols-outlined text-slate-400 text-[22px] mb-1">account_balance</span>
-                                <span class="font-body-sm text-[11px] font-bold text-slate-800">Bank Transfer</span>
-                            </label>
-                        </div>
+                        <!-- Bank Transfer -->
+                        <label class="pay-method-option group relative flex items-center gap-4 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all bg-white select-none" id="label_bank_transfer">
+                            <input class="sr-only" name="pay_method" type="radio" value="bank_transfer" onchange="selectPaymentMethod(this)">
+                            <div class="w-12 h-9 flex items-center justify-center bg-white rounded-lg border border-slate-200 shrink-0">
+                                <span class="material-symbols-outlined text-slate-500 text-[22px]">account_balance</span>
+                            </div>
+                            <div class="flex flex-col flex-grow">
+                                <span class="font-body-md text-sm font-bold text-slate-900">Bank Transfer</span>
+                                <span class="font-body-sm text-[11px] text-slate-500">Direct instant bank clearance</span>
+                            </div>
+                            <span class="material-symbols-outlined text-primary check-icon text-[20px] hidden" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        </label>
                     </div>
 
                     <!-- Customer Information Inputs -->
@@ -400,24 +421,18 @@ function autoDetectNetwork(phoneVal) {
 
 function selectPaymentMethod(radio) {
     document.querySelectorAll('.pay-method-option').forEach(el => {
-        el.classList.remove('border-2', 'border-secondary', 'bg-secondary/5');
-        el.classList.add('border', 'border-slate-200');
-        const icon = el.querySelector('.material-symbols-outlined');
-        if (icon) {
-            icon.classList.remove('text-secondary');
-            icon.classList.add('text-slate-400');
-        }
+        el.classList.remove('border-2', 'border-primary', 'bg-primary/5', 'shadow-sm');
+        el.classList.add('border', 'border-slate-200', 'bg-white');
+        const checkIcon = el.querySelector('.check-icon');
+        if (checkIcon) checkIcon.classList.add('hidden');
     });
 
     const parentLabel = radio.closest('label');
     if (parentLabel) {
-        parentLabel.classList.remove('border', 'border-slate-200');
-        parentLabel.classList.add('border-2', 'border-secondary', 'bg-secondary/5');
-        const icon = parentLabel.querySelector('.material-symbols-outlined');
-        if (icon) {
-            icon.classList.remove('text-slate-400');
-            icon.classList.add('text-secondary');
-        }
+        parentLabel.classList.remove('border', 'border-slate-200', 'bg-white');
+        parentLabel.classList.add('border-2', 'border-primary', 'bg-primary/5', 'shadow-sm');
+        const checkIcon = parentLabel.querySelector('.check-icon');
+        if (checkIcon) checkIcon.classList.remove('hidden');
     }
 
     const momoPhone = document.getElementById('momoPhoneContainer');
