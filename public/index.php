@@ -174,6 +174,8 @@ if ($uri === '/') {
     (new SettingsController())->index();
 } elseif ($uri === '/settings/update-profile' && $method === 'POST') {
     (new SettingsController())->updateProfile();
+} elseif ($uri === '/settings/toggle-mode' && $method === 'POST') {
+    (new SettingsController())->toggleEnvironment();
 } elseif ($uri === '/settings/update-password' && $method === 'POST') {
     (new SettingsController())->updatePassword();
 
@@ -266,6 +268,8 @@ if ($uri === '/') {
     (new ApiController())->getPaymentLink($m[1]);
 } elseif ($uri === '/api/v1/balance' && $method === 'GET') {
     (new ApiController())->getBalance();
+} elseif ($uri === '/api/v1/merchant/environment' && $method === 'POST') {
+    (new ApiController())->toggleEnvironmentApi();
 } elseif ($uri === '/api/v1/settlements' && $method === 'GET') {
     (new ApiController())->listSettlements();
 } else {

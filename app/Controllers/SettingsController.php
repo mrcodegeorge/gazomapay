@@ -68,4 +68,31 @@ class SettingsController {
         Response::setFlash('success', 'Team member added successfully!');
         Response::redirect('/settings');
     }
+
+    public function toggleEnvironment(): void {
+        AuthMiddleware::handle();
+        CsrfMiddleware::handle();
+
+        $merchantId = Auth::merchantId();
+        $pdo = Database::getConnection();
+
+        $stmtCurr = $pdo->prepare("SELECT environment FROM merchants WHERE id = ?");
+        $stmtCurr->execute([$merchantId]);
+        $currEnv = $stmtCurr->fetchColumn();
+
+        $targetEnv = ($currEnv === 'live') ? 'test' : 'live';
+
+        $stmtUpd = $pdo->prepare("UPDATE merchants SET environment = ? WHERE id = ?");
+        $stmtUpd->execute([$targetEnv, $merchantId]);
+
+        // Refresh Auth Session Data
+        unset($_SESSION['user_data']);
+
+        AuditLogger::log('merchant.environment_switched', "Switched merchant environment mode from {$currEnv} to {$targetEnv}");
+
+        Response::setFlash('success', "Environment mode successfully switched to " . strtoupper($targetEnv) . " MODE!");
+        
+        $redirectUrl = $_SERVER['HTTP_REFERER'] ?? '/dashboard';
+        Response::redirect($redirectUrl);
+    }
 }

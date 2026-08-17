@@ -126,6 +126,22 @@ $intentToCancel = PaymentIntentService::create($testMchId, ['amount' => 100.00, 
 $cancelRes = PaymentIntentService::cancel($intentToCancel['public_id']);
 assertTest('PaymentIntentService: Cancels payment intent and transitions status to canceled', $cancelRes['success'] === true && $cancelRes['status'] === 'canceled');
 
+// Merchant Live/Test Environment Mode Switching Test
+$pdo = Database::getConnection();
+$pdo->prepare("UPDATE merchants SET environment = 'test' WHERE id = ?")->execute([$testMchId]);
+$stmtEnv = $pdo->prepare("SELECT environment FROM merchants WHERE id = ?");
+$stmtEnv->execute([$testMchId]);
+$envMode1 = $stmtEnv->fetchColumn();
+
+$pdo->prepare("UPDATE merchants SET environment = 'live' WHERE id = ?")->execute([$testMchId]);
+$stmtEnv->execute([$testMchId]);
+$envMode2 = $stmtEnv->fetchColumn();
+
+// Restore to test mode for test runner
+$pdo->prepare("UPDATE merchants SET environment = 'test' WHERE id = ?")->execute([$testMchId]);
+
+assertTest('MerchantEnvironment: Successfully toggles merchant mode between live and test mode', $envMode1 === 'test' && $envMode2 === 'live');
+
 echo "\n--- 3. FINANCIAL RECONCILIATION AUDIT ---\n";
 $audit = ReconciliationService::auditMerchant($testMchId);
 assertTest('ReconciliationService: Financial reconciliation audit status is PASS', $audit['status'] === 'PASS', implode('; ', $audit['issues']));

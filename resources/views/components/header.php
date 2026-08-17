@@ -24,11 +24,15 @@ $unreadCount = (int)$stmtN->fetchColumn();
 
     <!-- Right Section: Actions & User Avatar -->
     <div class="flex items-center gap-5">
-        <!-- Live/Test Mode Toggle Indicator -->
-        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/60 text-body-sm font-medium">
-            <span class="w-2 h-2 rounded-full <?= $env === 'test' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 animate-pulse' ?>"></span>
-            <span class="font-label-caps text-label-caps uppercase font-bold text-on-surface"><?= $env === 'test' ? 'Test Mode' : 'Live Mode' ?></span>
-        </div>
+        <!-- Live/Test Mode Interactive Toggle Switcher -->
+        <form action="/settings/toggle-mode" method="POST" class="inline-block m-0 p-0">
+            <input type="hidden" name="csrf_token" value="<?= Auth::generateCsrfToken() ?>">
+            <button type="submit" title="Click to switch environment mode" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/60 text-body-sm font-medium hover:bg-surface-container-high transition-all cursor-pointer group">
+                <span class="w-2.5 h-2.5 rounded-full <?= $env === 'test' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 animate-pulse' ?>"></span>
+                <span class="font-label-caps text-label-caps uppercase font-bold text-on-surface group-hover:text-primary transition-colors"><?= $env === 'test' ? 'Test Mode' : 'Live Mode' ?></span>
+                <span class="material-symbols-outlined text-[16px] text-on-surface-variant group-hover:rotate-180 transition-transform">sync</span>
+            </button>
+        </form>
 
         <!-- Notifications Bell -->
         <button class="relative hover:bg-surface-container-low p-2 rounded-full transition-colors flex items-center justify-center text-on-surface-variant cursor-pointer" onclick="openModal('notificationsModal')" title="Notifications">

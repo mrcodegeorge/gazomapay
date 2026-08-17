@@ -375,6 +375,29 @@ class ApiController {
     }
 
     /**
+     * POST /api/v1/merchant/environment
+     */
+    public function toggleEnvironmentApi(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $targetEnv = strtolower($input['environment'] ?? '');
+        if (!in_array($targetEnv, ['live', 'test'])) {
+            $targetEnv = ($merchant['environment'] === 'live') ? 'test' : 'live';
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("UPDATE merchants SET environment = ? WHERE id = ?");
+        $stmt->execute([$targetEnv, $merchant['id']]);
+
+        ApiResponse::success([
+            'merchant_id' => (int)$merchant['id'],
+            'environment' => $targetEnv,
+            'switched_at' => date('c')
+        ], "Environment mode successfully switched to {$targetEnv}");
+    }
+
+    /**
      * GET /api/v1/settlements
      */
     public function listSettlements(): void {
