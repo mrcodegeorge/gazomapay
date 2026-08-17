@@ -22,7 +22,11 @@
                     </div>
                 </div>
                 <div class="text-right">
-                    <span class="px-2.5 py-1 rounded-full bg-slate-800/90 text-slate-300 font-label-caps text-[10px] font-bold tracking-wider uppercase border border-slate-700">Test Mode</span>
+                    <?php if (($merchant['environment'] ?? 'test') === 'test'): ?>
+                        <span class="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 font-label-caps text-[10px] font-bold tracking-wider uppercase border border-amber-500/40">Test Mode</span>
+                    <?php else: ?>
+                        <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-label-caps text-[10px] font-bold tracking-wider uppercase border border-emerald-500/40">Live Mode</span>
+                    <?php endif; ?>
                 </div>
             </div>
 

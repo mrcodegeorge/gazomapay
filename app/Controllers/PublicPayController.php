@@ -11,7 +11,7 @@ class PublicPayController {
         $pdo = Database::getConnection();
 
         // 1. Fetch Payment Link
-        $stmt = $pdo->prepare("SELECT pl.*, m.name as merchant_name, m.email as merchant_email, m.logo as merchant_logo FROM payment_links pl JOIN merchants m ON pl.merchant_id = m.id WHERE pl.token = ? AND pl.status = 'active'");
+        $stmt = $pdo->prepare("SELECT pl.*, m.name as merchant_name, m.email as merchant_email, m.logo as merchant_logo, m.environment as merchant_environment FROM payment_links pl JOIN merchants m ON pl.merchant_id = m.id WHERE pl.token = ? AND pl.status = 'active'");
         $stmt->execute([$token]);
         $link = $stmt->fetch();
 
