@@ -76,11 +76,16 @@
             
             <!-- Phase 3: Form Container -->
             <div id="momoFormSection">
-                <h3 class="font-headline-lg text-xl font-bold text-slate-900 mb-1">Select Payment Method</h3>
                 <h2 class="font-headline-sm text-lg font-bold text-slate-900 mb-1">
                     Select a <span class="text-primary font-semibold">payment</span> method
                 </h2>
-                <p class="font-body-sm text-xs text-slate-500 mb-5">Complete your payment securely using Mobile Money, Card, or Bank Transfer.</p>
+                <p class="font-body-sm text-xs text-slate-500 mb-4">Complete your payment securely using Mobile Money, Card, or Bank Transfer.</p>
+
+                <!-- Total Amount Summary Banner -->
+                <div class="bg-slate-100/80 p-3.5 rounded-xl flex justify-between items-center mb-5 border border-slate-200/60">
+                    <span class="text-slate-600 font-semibold text-xs uppercase tracking-wider">Total to Pay</span>
+                    <span class="text-lg font-extrabold text-primary font-data-mono">GH₵ <?= number_format($amount ?? 150.00, 2) ?></span>
+                </div>
 
                 <form id="paystackMomoForm" onsubmit="submitPaystackMomo(event)">
                     <input type="hidden" id="momo_amount" value="<?= htmlspecialchars($amount ?? 150.00) ?>">
@@ -88,7 +93,7 @@
                     <!-- Payment Methods List Layout -->
                     <div aria-labelledby="payment-method-label" class="flex flex-col gap-2.5 mb-6" role="radiogroup">
                         <!-- Mobile Money - Selected by default -->
-                        <label class="pay-method-option group relative flex items-center gap-4 p-3.5 border-2 border-primary bg-primary/5 rounded-xl cursor-pointer transition-all shadow-sm select-none" id="label_mobile_money">
+                        <label class="pay-method-option animate-slide-up-fade stagger-1 group relative flex items-center gap-4 p-3.5 border-2 border-primary bg-primary/5 rounded-xl cursor-pointer transition-all shadow-sm select-none" id="label_mobile_money">
                             <input checked class="sr-only" name="pay_method" type="radio" value="mobile_money" onchange="selectPaymentMethod(this)">
                             <div class="w-12 h-9 flex items-center justify-center bg-white rounded-lg border border-slate-200 shrink-0">
                                 <span class="material-symbols-outlined text-primary text-[22px]">smartphone</span>
@@ -101,7 +106,7 @@
                         </label>
 
                         <!-- Debit / Credit Card -->
-                        <label class="pay-method-option group relative flex items-center gap-4 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all bg-white select-none" id="label_card">
+                        <label class="pay-method-option animate-slide-up-fade stagger-2 group relative flex items-center gap-4 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all bg-white select-none" id="label_card">
                             <input class="sr-only" name="pay_method" type="radio" value="card" onchange="selectPaymentMethod(this)">
                             <div class="w-12 h-9 flex items-center justify-center bg-white rounded-lg border border-slate-200 shrink-0">
                                 <span class="material-symbols-outlined text-slate-500 text-[22px]">credit_card</span>

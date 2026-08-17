@@ -1,3 +1,17 @@
+<style>
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up-fade {
+    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+}
+.stagger-1 { animation-delay: 60ms; }
+.stagger-2 { animation-delay: 120ms; }
+.stagger-3 { animation-delay: 180ms; }
+</style>
+
 <div class="min-h-screen w-full flex flex-col lg:flex-row bg-slate-950 font-body-md text-slate-900 antialiased">
     
     <!-- LEFT PANEL: Stripe-Style Order Summary & Merchant Branding -->
@@ -81,14 +95,20 @@
                 <h2 class="font-headline-sm text-lg font-bold text-slate-900 mb-1">
                     Select a <span class="text-primary font-semibold">payment</span> method
                 </h2>
-                <p class="font-body-sm text-xs text-slate-500 mb-5">Complete your payment securely using Mobile Money, Card, or Bank Transfer.</p>
+                <p class="font-body-sm text-xs text-slate-500 mb-4">Complete your payment securely using Mobile Money, Card, or Bank Transfer.</p>
+
+                <!-- Total Amount Summary Banner -->
+                <div class="bg-slate-100/80 p-3.5 rounded-xl flex justify-between items-center mb-5 border border-slate-200/60">
+                    <span class="text-slate-600 font-semibold text-xs uppercase tracking-wider">Total to Pay</span>
+                    <span class="text-lg font-extrabold text-primary font-data-mono">GH₵ <?= number_format($link['amount'], 2) ?></span>
+                </div>
 
                 <form id="paymentForm" onsubmit="handleSandboxPayment(event, '<?= $link['token'] ?>')">
                     
                     <!-- Payment Methods List Layout -->
                     <div aria-labelledby="payment-method-label" class="flex flex-col gap-2.5 mb-6" role="radiogroup">
                         <!-- Mobile Money - Selected by default -->
-                        <label class="pay-method-option group relative flex items-center gap-4 p-3.5 border-2 border-primary bg-primary/5 rounded-xl cursor-pointer transition-all shadow-sm select-none" id="label_mobile_money">
+                        <label class="pay-method-option animate-slide-up-fade stagger-1 group relative flex items-center gap-4 p-3.5 border-2 border-primary bg-primary/5 rounded-xl cursor-pointer transition-all shadow-sm select-none" id="label_mobile_money">
                             <input checked class="sr-only" name="pay_method" type="radio" value="mobile_money" onchange="selectPaymentMethod(this)">
                             <div class="w-12 h-9 flex items-center justify-center bg-white rounded-lg border border-slate-200 shrink-0">
                                 <span class="material-symbols-outlined text-primary text-[22px]">smartphone</span>
@@ -101,7 +121,7 @@
                         </label>
 
                         <!-- Debit / Credit Card -->
-                        <label class="pay-method-option group relative flex items-center gap-4 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all bg-white select-none" id="label_card">
+                        <label class="pay-method-option animate-slide-up-fade stagger-2 group relative flex items-center gap-4 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all bg-white select-none" id="label_card">
                             <input class="sr-only" name="pay_method" type="radio" value="card" onchange="selectPaymentMethod(this)">
                             <div class="w-12 h-9 flex items-center justify-center bg-white rounded-lg border border-slate-200 shrink-0">
                                 <span class="material-symbols-outlined text-slate-500 text-[22px]">credit_card</span>
@@ -114,7 +134,7 @@
                         </label>
 
                         <!-- Bank Transfer -->
-                        <label class="pay-method-option group relative flex items-center gap-4 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all bg-white select-none" id="label_bank_transfer">
+                        <label class="pay-method-option animate-slide-up-fade stagger-3 group relative flex items-center gap-4 p-3.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-all bg-white select-none" id="label_bank_transfer">
                             <input class="sr-only" name="pay_method" type="radio" value="bank_transfer" onchange="selectPaymentMethod(this)">
                             <div class="w-12 h-9 flex items-center justify-center bg-white rounded-lg border border-slate-200 shrink-0">
                                 <span class="material-symbols-outlined text-slate-500 text-[22px]">account_balance</span>
