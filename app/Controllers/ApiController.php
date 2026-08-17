@@ -1,8 +1,11 @@
 <?php
 
 require_once __DIR__ . '/../Helpers/Response.php';
+require_once __DIR__ . '/../Helpers/ApiResponse.php';
 require_once __DIR__ . '/../Middleware/ApiAuthMiddleware.php';
 require_once __DIR__ . '/../Services/SandboxPaymentGateway.php';
+require_once __DIR__ . '/../Services/PaymentIntentService.php';
+require_once __DIR__ . '/../Services/OutboundWebhookService.php';
 require_once __DIR__ . '/../Services/IdempotencyService.php';
 require_once __DIR__ . '/../Services/LedgerEngine.php';
 require_once __DIR__ . '/../../config/database.php';
@@ -106,6 +109,23 @@ class ApiController {
             self::respondSuccess($result, 200);
         } else {
             self::respondError('PAYMENT_FAILED', $result['message'], 400);
+        }
+    }
+
+    /**
+     * POST /api/v1/payments/{public_id}/confirm
+     */
+    public function confirmPayment(string $publicId): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $res = PaymentIntentService::confirm($publicId, $input);
+        if ($res['success']) {
+            OutboundWebhookService::dispatch($merchant['id'], 'payment.succeeded', $res['payment']);
+            ApiResponse::success($res['payment'], 'Payment intent confirmed successfully');
+        } else {
+            OutboundWebhookService::dispatch($merchant['id'], 'payment.failed', ['public_id' => $publicId, 'reason' => $res['message']]);
+            ApiResponse::error($res['error_code'] ?? 'PAYMENT_FAILED', $res['message'], 'payment_error', 400);
         }
     }
 

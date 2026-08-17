@@ -100,6 +100,23 @@ $sig = hash_hmac('sha256', $rawWh, $secret);
 $whRes = WebhookEngine::receiveAndProcess('sandbox', ['x-gazoma-signature' => $sig], $rawWh);
 assertTest('WebhookEngine: Processes webhook event payload and updates database', !empty($whRes['success']), json_encode($whRes));
 
+// Stripe-Style Payment Intent & Payment Attempts
+require_once __DIR__ . '/../app/Services/PaymentIntentService.php';
+$intent = PaymentIntentService::create($testMchId, [
+    'amount' => 350.00,
+    'currency' => 'GHS',
+    'description' => 'Test Suite Payment Intent'
+]);
+
+assertTest('PaymentIntentService: Creates pay_ object in requires_payment_method status with minor unit amount', strpos($intent['public_id'], 'pay_') === 0 && $intent['amount'] === 35000 && $intent['status'] === 'requires_payment_method');
+
+$confirmRes = PaymentIntentService::confirm($intent['public_id'], [
+    'payment_method' => 'card',
+    'customer_email' => 'intent_test@example.com'
+]);
+
+assertTest('PaymentIntentService: Confirms payment intent, tracks attempt, and updates status to succeeded', $confirmRes['success'] === true && $confirmRes['status'] === 'succeeded' && !empty($confirmRes['payment']['attempts']));
+
 echo "\n--- 3. FINANCIAL RECONCILIATION AUDIT ---\n";
 $audit = ReconciliationService::auditMerchant($testMchId);
 assertTest('ReconciliationService: Financial reconciliation audit status is PASS', $audit['status'] === 'PASS', implode('; ', $audit['issues']));

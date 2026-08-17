@@ -235,6 +235,8 @@ if ($uri === '/') {
     Response::json($res);
 } elseif ($uri === '/api/v1/payments' && $method === 'POST') {
     (new ApiController())->createPayment();
+} elseif (preg_match('#^/api/v1/payments/([0-9a-zA-Z_]+)/confirm$#', $uri, $m) && $method === 'POST') {
+    (new ApiController())->confirmPayment($m[1]);
 } elseif (preg_match('#^/api/v1/payments/([0-9a-zA-Z_]+)/refund$#', $uri, $m) && $method === 'POST') {
     (new ApiController())->refundPayment($m[1]);
 } elseif (preg_match('#^/api/v1/payments/([0-9a-zA-Z_]+)$#', $uri, $m)) {
