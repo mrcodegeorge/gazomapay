@@ -163,6 +163,20 @@ try {
         $stmtTx->execute([$tx[0], $evtId, $merchantId, $cId, null, $tx[2], $fee, $net, 'GHS', $tx[5], 'Sandbox Gateway', $tx[3], $tx[4]]);
     }
 
+    // Seed Stripe-Style Payment Intents for both Live Mode and Test Mode
+    $stmtPaySeed = $pdo->prepare("
+        INSERT INTO payments (public_id, merchant_id, customer_id, amount, currency, status, payment_method, provider, provider_reference, description, livemode, created_at) 
+        VALUES (?, ?, ?, ?, 'GHS', ?, ?, ?, ?, ?, ?, ?)
+    ");
+
+    // Test Mode Payments (livemode = 0)
+    $stmtPaySeed->execute(['pay_test_001', $merchantId, $customerIds['Ama Serwaa'], 25000, 'succeeded', 'card', 'sandbox', 'sand_tx_001', 'Test Mode Store Purchase', 0, '2026-08-17 14:00:00']);
+    $stmtPaySeed->execute(['pay_test_002', $merchantId, $customerIds['Kofi Mensah'], 15000, 'succeeded', 'mobile_money', 'sandbox', 'sand_tx_002', 'Test Mode MoMo Subscription', 0, '2026-08-17 15:10:00']);
+    $stmtPaySeed->execute(['pay_test_003', $merchantId, $customerIds['Gloria Adjei'], 5000, 'requires_payment_method', null, 'sandbox', null, 'Pending Test Checkout', 0, '2026-08-17 16:00:00']);
+
+    // Live Mode Payments (livemode = 1)
+    $stmtPaySeed->execute(['pay_live_001', $merchantId, $customerIds['Comfort Stores'], 12656000, 'succeeded', 'card', 'paystack', 'pstk_live_9920', 'Production Enterprise Licensing', 1, '2026-08-16 10:00:00']);
+
     // Settlements matching mockup
     $stmtSet = $pdo->prepare("INSERT INTO settlements (reference, merchant_id, gross_amount, fee, net_amount, bank_name, account_number, account_name, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     

@@ -16,44 +16,74 @@ class TransactionController {
         $pdo = Database::getConnection();
         $merchantId = Auth::merchantId();
 
+        $user = Auth::user();
+        $env = $user['environment'] ?? 'test';
+        $livemode = ($env === 'live') ? 1 : 0;
+
         $search = trim($_GET['search'] ?? '');
         $statusTab = trim($_GET['status'] ?? 'all');
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = 10;
         $offset = ($page - 1) * $limit;
 
-        $where = ["t.merchant_id = ?"];
-        $params = [$merchantId];
+        // Query Stripe-style payments table filtered by livemode
+        $where = ["p.merchant_id = ?", "p.livemode = ?"];
+        $params = [$merchantId, $livemode];
 
         if (!empty($search)) {
-            $where[] = "(t.reference LIKE ? OR c.name LIKE ? OR c.email LIKE ?)";
+            $where[] = "(p.public_id LIKE ? OR c.name LIKE ? OR c.email LIKE ?)";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
         }
 
         if ($statusTab !== 'all') {
-            $where[] = "t.status = ?";
+            $where[] = "p.status = ?";
             $params[] = $statusTab;
         }
 
         $whereClause = implode(' AND ', $where);
 
         // Count total
-        $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id WHERE {$whereClause}");
+        $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM payments p LEFT JOIN customers c ON p.customer_id = c.id WHERE {$whereClause}");
         $stmtCount->execute($params);
         $totalRecords = (int)$stmtCount->fetchColumn();
+
+        // Fallback to transactions table if payments count is 0
+        if ($totalRecords === 0) {
+            $whereOld = ["t.merchant_id = ?"];
+            $paramsOld = [$merchantId];
+            if (!empty($search)) {
+                $whereOld[] = "(t.reference LIKE ? OR c.name LIKE ? OR c.email LIKE ?)";
+                $paramsOld[] = "%{$search}%";
+                $paramsOld[] = "%{$search}%";
+                $paramsOld[] = "%{$search}%";
+            }
+            if ($statusTab !== 'all') {
+                $whereOld[] = "t.status = ?";
+                $paramsOld[] = $statusTab;
+            }
+            $whereOldClause = implode(' AND ', $whereOld);
+            $stmtCountOld = $pdo->prepare("SELECT COUNT(*) FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id WHERE {$whereOldClause}");
+            $stmtCountOld->execute($paramsOld);
+            $totalRecords = (int)$stmtCountOld->fetchColumn();
+
+            $sqlOld = "SELECT t.id, t.reference as public_id, t.amount, t.fee, t.net_amount, t.currency, t.payment_method, t.status, t.created_at, c.name as customer_name, c.email as customer_email FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id WHERE {$whereOldClause} ORDER BY t.created_at DESC LIMIT {$limit} OFFSET {$offset}";
+            $stmtOld = $pdo->prepare($sqlOld);
+            $stmtOld->execute($paramsOld);
+            $transactions = $stmtOld->fetchAll();
+        } else {
+            $sql = "SELECT p.id, p.public_id, (p.amount / 100) as amount, round((p.amount / 100) * 0.015 + 0.50, 2) as fee, round((p.amount / 100) - ((p.amount / 100) * 0.015 + 0.50), 2) as net_amount, p.currency, p.payment_method, p.status, p.created_at, c.name as customer_name, c.email as customer_email FROM payments p LEFT JOIN customers c ON p.customer_id = c.id WHERE {$whereClause} ORDER BY p.created_at DESC LIMIT {$limit} OFFSET {$offset}";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $transactions = $stmt->fetchAll();
+        }
+
         $totalPages = max(1, ceil($totalRecords / $limit));
 
-        // Fetch page items
-        $sql = "SELECT t.*, c.name as customer_name, c.email as customer_email FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id WHERE {$whereClause} ORDER BY t.created_at DESC LIMIT {$limit} OFFSET {$offset}";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $transactions = $stmt->fetchAll();
-
         View::render('transactions/index', [
-            'pageTitle' => 'Transactions',
-            'pageSubtitle' => 'View and manage all your transactions.',
+            'pageTitle' => 'Transactions (' . strtoupper($env) . ' MODE)',
+            'pageSubtitle' => 'View and manage all your ' . strtoupper($env) . ' mode payment transactions.',
             'transactions' => $transactions,
             'statusTab' => $statusTab,
             'search' => $search,
