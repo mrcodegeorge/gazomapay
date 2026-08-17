@@ -233,6 +233,15 @@ if ($uri === '/') {
     $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
     $res = $gateway->verify3DsOtp($input['reference'] ?? '', $input['otp'] ?? '');
     Response::json($res);
+// Payment Intents API Endpoints
+} elseif ($uri === '/api/v1/payment-intents' && $method === 'POST') {
+    (new ApiController())->createPaymentIntent();
+} elseif (preg_match('#^/api/v1/payment-intents/([0-9a-zA-Z_]+)/confirm$#', $uri, $m) && $method === 'POST') {
+    (new ApiController())->confirmPayment($m[1]);
+} elseif (preg_match('#^/api/v1/payment-intents/([0-9a-zA-Z_]+)/cancel$#', $uri, $m) && $method === 'POST') {
+    (new ApiController())->cancelPaymentIntent($m[1]);
+} elseif (preg_match('#^/api/v1/payment-intents/([0-9a-zA-Z_]+)$#', $uri, $m) && $method === 'GET') {
+    (new ApiController())->getPaymentIntent($m[1]);
 } elseif ($uri === '/api/v1/payments' && $method === 'POST') {
     (new ApiController())->createPayment();
 } elseif (preg_match('#^/api/v1/payments/([0-9a-zA-Z_]+)/confirm$#', $uri, $m) && $method === 'POST') {

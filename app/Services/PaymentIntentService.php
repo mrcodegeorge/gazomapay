@@ -158,6 +158,30 @@ class PaymentIntentService {
         }
     }
 
+    /**
+     * Cancel a Payment Intent.
+     */
+    public static function cancel(string $publicId): array {
+        $pdo = Database::getConnection();
+        $pay = self::get($publicId);
+
+        if (!$pay) {
+            return ['success' => false, 'error_code' => 'RESOURCE_NOT_FOUND', 'message' => 'Payment intent not found'];
+        }
+
+        if (in_array($pay['status'], ['succeeded', 'canceled'])) {
+            return ['success' => false, 'error_code' => 'INVALID_STATE', 'message' => "Payment is already {$pay['status']}"];
+        }
+
+        self::updateStatus($pay['id'], 'canceled');
+
+        return [
+            'success' => true,
+            'status' => 'canceled',
+            'payment' => self::get($publicId)
+        ];
+    }
+
     private static function updateStatus(int $paymentId, string $status, string $provider = 'sandbox', string $providerRef = '', string $method = ''): void {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("

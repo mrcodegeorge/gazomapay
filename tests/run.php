@@ -100,6 +100,10 @@ $sig = hash_hmac('sha256', $rawWh, $secret);
 $whRes = WebhookEngine::receiveAndProcess('sandbox', ['x-gazoma-signature' => $sig], $rawWh);
 assertTest('WebhookEngine: Processes webhook event payload and updates database', !empty($whRes['success']), json_encode($whRes));
 
+// Duplicate Webhook Rejection Test
+$dupWhRes = WebhookEngine::receiveAndProcess('sandbox', ['x-gazoma-signature' => $sig], $rawWh);
+assertTest('WebhookEngine: Rejects duplicate webhook event with zero second ledger posting', $dupWhRes['status'] === 'duplicate');
+
 // Stripe-Style Payment Intent & Payment Attempts
 require_once __DIR__ . '/../app/Services/PaymentIntentService.php';
 $intent = PaymentIntentService::create($testMchId, [
@@ -116,6 +120,11 @@ $confirmRes = PaymentIntentService::confirm($intent['public_id'], [
 ]);
 
 assertTest('PaymentIntentService: Confirms payment intent, tracks attempt, and updates status to succeeded', $confirmRes['success'] === true && $confirmRes['status'] === 'succeeded' && !empty($confirmRes['payment']['attempts']));
+
+// Payment Intent Cancellation Test
+$intentToCancel = PaymentIntentService::create($testMchId, ['amount' => 100.00, 'currency' => 'GHS']);
+$cancelRes = PaymentIntentService::cancel($intentToCancel['public_id']);
+assertTest('PaymentIntentService: Cancels payment intent and transitions status to canceled', $cancelRes['success'] === true && $cancelRes['status'] === 'canceled');
 
 echo "\n--- 3. FINANCIAL RECONCILIATION AUDIT ---\n";
 $audit = ReconciliationService::auditMerchant($testMchId);

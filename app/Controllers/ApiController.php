@@ -71,6 +71,70 @@ class ApiController {
     }
 
     /**
+     * POST /api/v1/payment-intents
+     */
+    public function createPaymentIntent(): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $idempotencyKey = $_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? null;
+        if ($idempotencyKey) {
+            $cached = IdempotencyService::check($merchant['id'], $idempotencyKey, '/api/v1/payment-intents', $input);
+            if ($cached) {
+                header('Content-Type: application/json');
+                http_response_code($cached['code']);
+                echo json_encode($cached['body'], JSON_PRETTY_PRINT);
+                exit;
+            }
+        }
+
+        $amount = (float)($input['amount'] ?? 0);
+        if ($amount <= 0) {
+            ApiResponse::error('INVALID_AMOUNT', 'The payment amount must be greater than zero.', 'validation_error', 422);
+        }
+
+        $intent = PaymentIntentService::create($merchant['id'], $input);
+        if ($idempotencyKey) {
+            IdempotencyService::store($merchant['id'], $idempotencyKey, '/api/v1/payment-intents', $input, 201, ['success' => true, 'data' => $intent]);
+        }
+
+        ApiResponse::success($intent, 'Payment intent created successfully', 201);
+    }
+
+    /**
+     * GET /api/v1/payment-intents/{public_id}
+     */
+    public function getPaymentIntent(string $publicId): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $intent = PaymentIntentService::get($publicId);
+
+        if (!$intent || (int)$intent['merchant_id'] !== (int)$merchant['id']) {
+            ApiResponse::error('RESOURCE_NOT_FOUND', 'Payment intent not found', 'api_error', 404);
+        }
+
+        ApiResponse::success($intent);
+    }
+
+    /**
+     * POST /api/v1/payment-intents/{public_id}/cancel
+     */
+    public function cancelPaymentIntent(string $publicId): void {
+        $merchant = ApiAuthMiddleware::authenticate();
+        $intent = PaymentIntentService::get($publicId);
+
+        if (!$intent || (int)$intent['merchant_id'] !== (int)$merchant['id']) {
+            ApiResponse::error('RESOURCE_NOT_FOUND', 'Payment intent not found', 'api_error', 404);
+        }
+
+        $res = PaymentIntentService::cancel($publicId);
+        if ($res['success']) {
+            ApiResponse::success($res['payment'], 'Payment intent canceled successfully');
+        } else {
+            ApiResponse::error($res['error_code'] ?? 'CANCEL_FAILED', $res['message'], 'payment_error', 400);
+        }
+    }
+
+    /**
      * POST /api/v1/payments
      */
     public function createPayment(): void {
