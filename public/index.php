@@ -25,6 +25,7 @@ require_once __DIR__ . '/../app/Controllers/ApiController.php';
 require_once __DIR__ . '/../app/Controllers/PublicWebController.php';
 require_once __DIR__ . '/../app/Controllers/PaystackController.php';
 require_once __DIR__ . '/../app/Controllers/DisputeController.php';
+require_once __DIR__ . '/../app/Controllers/OnboardingController.php';
 
 Auth::initSession();
 
