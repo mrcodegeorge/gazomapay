@@ -21,6 +21,20 @@ try {
     }
     echo "Schema applied successfully.\n";
 
+    echo "[1b/4] Applying migration files...\n";
+    $migrationFiles = glob(__DIR__ . '/migrations/*.sql');
+    sort($migrationFiles);
+    foreach ($migrationFiles as $migFile) {
+        $migSql = file_get_contents($migFile);
+        $migStatements = array_filter(array_map('trim', explode(';', $migSql)));
+        foreach ($migStatements as $mStmt) {
+            if (!empty($mStmt)) {
+                $pdo->exec($mStmt);
+            }
+        }
+        echo "Applied migration: " . basename($migFile) . "\n";
+    }
+
     echo "[2/4] Seeding Merchants & Users...\n";
     $passHash = password_hash('password123', PASSWORD_BCRYPT);
     

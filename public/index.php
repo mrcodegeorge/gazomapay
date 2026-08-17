@@ -122,6 +122,14 @@ if ($uri === '/') {
     $ctrl = new PublicPayController();
     ($method === 'POST') ? $ctrl->process($m[1]) : $ctrl->show($m[1]);
 
+// Admin Routes
+} elseif ($uri === '/admin') {
+    (new AdminController())->index();
+} elseif ($uri === '/admin/system-health') {
+    (new AdminController())->systemHealth();
+} elseif ($uri === '/admin/reconciliation') {
+    (new AdminController())->reconciliation();
+
 // Invoices
 } elseif ($uri === '/invoices') {
     (new InvoiceController())->index();
@@ -209,6 +217,8 @@ if ($uri === '/') {
     (new PaystackController())->handleWebhook();
 
 // REST API v1 Hardened Endpoints
+} elseif ($uri === '/api/v1/health') {
+    (new ApiController())->health();
 } elseif ($uri === '/api/v1/momo/charge' && $method === 'POST') {
     (new PaystackController())->chargeMomo();
 } elseif (preg_match('#^/api/v1/momo/verify/([0-9a-zA-Z_]+)$#', $uri, $m)) {

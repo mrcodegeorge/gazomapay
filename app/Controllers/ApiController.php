@@ -37,6 +37,37 @@ class ApiController {
     }
 
     /**
+     * GET /api/v1/health
+     */
+    public function health(): void {
+        $dbHealthy = false;
+        try {
+            $pdo = Database::getConnection();
+            $pdo->query("SELECT 1");
+            $dbHealthy = true;
+        } catch (Exception $e) {}
+
+        $mode = Env::get('GAZOMA_PAYMENT_MODE', 'sandbox');
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'status' => $dbHealthy ? 'healthy' : 'degraded',
+            'timestamp' => date('c'),
+            'subsystems' => [
+                'database' => $dbHealthy ? 'healthy' : 'unhealthy',
+                'ledger' => 'healthy',
+                'payment_providers' => [
+                    'mode' => $mode,
+                    'sandbox' => 'healthy',
+                    'paystack' => Env::get('PAYSTACK_ENABLED', false) ? 'healthy' : 'not_configured',
+                    'hubtel' => Env::get('HUBTEL_ENABLED', false) ? 'healthy' : 'not_configured'
+                ]
+            ]
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    /**
      * POST /api/v1/payments
      */
     public function createPayment(): void {

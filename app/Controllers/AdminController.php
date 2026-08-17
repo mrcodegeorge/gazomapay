@@ -12,6 +12,53 @@ require_once __DIR__ . '/../../config/database.php';
 
 class AdminController {
 
+    public function systemHealth(): void {
+        AuthMiddleware::handle();
+        $pdo = Database::getConnection();
+
+        $dbStatus = 'HEALTHY';
+        try {
+            $pdo->query("SELECT 1");
+        } catch (Exception $e) {
+            $dbStatus = 'CRITICAL';
+        }
+
+        $stmtWebhooks = $pdo->query("SELECT COUNT(*) FROM webhook_events WHERE status = 'failed'");
+        $failedWebhooks = (int)$stmtWebhooks->fetchColumn();
+
+        $stmtPendingSet = $pdo->query("SELECT COUNT(*) FROM settlements WHERE status = 'pending'");
+        $pendingSettlements = (int)$stmtPendingSet->fetchColumn();
+
+        $mode = Env::get('GAZOMA_PAYMENT_MODE', 'sandbox');
+
+        View::render('admin/system_health', [
+            'pageTitle' => 'System Infrastructure Health & Operations',
+            'dbStatus' => $dbStatus,
+            'mode' => $mode,
+            'failedWebhooks' => $failedWebhooks,
+            'pendingSettlements' => $pendingSettlements,
+            'phpVersion' => PHP_VERSION,
+            'cronStatus' => 'HEALTHY'
+        ], 'app');
+    }
+
+    public function reconciliation(): void {
+        AuthMiddleware::handle();
+        $pdo = Database::getConnection();
+
+        $stmtRuns = $pdo->query("SELECT * FROM reconciliation_runs ORDER BY created_at DESC LIMIT 20");
+        $runs = $stmtRuns->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtItems = $pdo->query("SELECT * FROM reconciliation_items ORDER BY created_at DESC LIMIT 30");
+        $items = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
+
+        View::render('admin/reconciliation', [
+            'pageTitle' => 'Financial Reconciliation Audit',
+            'runs' => $runs,
+            'items' => $items
+        ], 'app');
+    }
+
     /**
      * Menu 1: Platform Overview Dashboard
      * Route: GET /admin

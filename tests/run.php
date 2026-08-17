@@ -77,6 +77,29 @@ assertTest('SandboxPaymentGateway: Charge execution returns successful status & 
 $refundRes = $gateway->refund($res['reference'], 250.00, 'Test suite refund');
 assertTest('SandboxPaymentGateway: Refund execution reverses transaction successfully', $refundRes['success'] === true);
 
+// Provider Abstraction Layer & Resolver
+require_once __DIR__ . '/../app/Services/PaymentProviderResolver.php';
+$provider = PaymentProviderResolver::resolve('sandbox');
+assertTest('PaymentProviderResolver: Resolves SandboxPaymentProvider in sandbox mode', $provider->getProviderName() === 'sandbox');
+
+// Risk & Fraud Engine
+require_once __DIR__ . '/../app/Services/RiskEngine.php';
+$riskAssessment = RiskEngine::evaluate($testMchId, 15000.00, 'testsuite@example.com', '127.0.0.1');
+assertTest('RiskEngine: Scores high value transaction (>10k GHS) and issues BLOCK decision', $riskAssessment['decision'] === 'BLOCK' && $riskAssessment['score'] >= 70);
+
+// Request ID Generation
+require_once __DIR__ . '/../app/Helpers/RequestId.php';
+$reqId = RequestId::get();
+assertTest('RequestId: Generates unique req_ correlation ID', strpos($reqId, 'req_') === 0);
+
+// Webhook Engine Signature Validation & Processing
+require_once __DIR__ . '/../app/Services/WebhookEngine.php';
+$rawWh = json_encode(['event' => 'payment.success', 'reference' => $res['reference']]);
+$secret = Env::get('GAZOMA_WEBHOOK_SECRET', 'whsec_9a8b7c6d5e4f3a2b1c');
+$sig = hash_hmac('sha256', $rawWh, $secret);
+$whRes = WebhookEngine::receiveAndProcess('sandbox', ['x-gazoma-signature' => $sig], $rawWh);
+assertTest('WebhookEngine: Processes webhook event payload and updates database', !empty($whRes['success']), json_encode($whRes));
+
 echo "\n--- 3. FINANCIAL RECONCILIATION AUDIT ---\n";
 $audit = ReconciliationService::auditMerchant($testMchId);
 assertTest('ReconciliationService: Financial reconciliation audit status is PASS', $audit['status'] === 'PASS', implode('; ', $audit['issues']));
