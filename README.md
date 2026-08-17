@@ -20,6 +20,22 @@ Gazoma Pay is a production-ready, full-stack PHP 8 fintech web application and p
 
 ---
 
+## Product Screenshots & User Interface
+
+### 1. Merchant Financial Overview Dashboard
+![Merchant Financial Overview Dashboard](docs/images/financial_overview_dashboard.png)
+
+### 2. Multi-Channel Payment Link Checkout (Mobile Money & Cards)
+![Payment Link Checkout Interface](docs/images/checkout_checkout.png)
+
+### 3. Real-Time Transaction Management & Ledger Logs
+![Real-Time Transactions Dashboard](docs/images/transactions_dashboard.png)
+
+### 4. Merchant Customer Accounts & Spending History
+![Merchant Customer Accounts](docs/images/customers_dashboard.png)
+
+---
+
 ## Directory Structure
 
 ```text
